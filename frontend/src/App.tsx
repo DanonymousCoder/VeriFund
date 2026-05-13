@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link, Routes, Route, Navigate } from 'react-router-dom'
 import {
   ArrowRight,
   BadgeCheck,
@@ -11,6 +12,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
+import { Login, SignUp } from './components'
 import heroImage from './assets/hero.png'
 
 const navigationItems = [
@@ -89,6 +91,17 @@ type FeatureCardProps = {
 
 function App() {
   return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function LandingPage() {
+  return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar />
       <main>
@@ -105,9 +118,9 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-        <a href="#home" className="text-xl font-semibold tracking-tight text-slate-950">
+        <Link to="/" className="text-xl font-semibold tracking-tight text-slate-950">
           VeriFund
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-10 md:flex">
           {navigationItems.map((item) => (
@@ -136,12 +149,12 @@ function Navbar() {
           >
             <ShieldCheck className="h-4 w-4" />
           </button>
-          <a
-            href="#contact"
+          <Link
+            to="/login"
             className="inline-flex items-center justify-center rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
           >
             Login
-          </a>
+          </Link>
         </div>
       </nav>
     </header>
@@ -176,12 +189,12 @@ function Hero() {
               Join a cooperative
               <ArrowRight className="h-4 w-4" />
             </a>
-            <a
-              href="#about"
+            <Link
+              to="/signup"
               className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3.5 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50"
             >
               View demo
-            </a>
+            </Link>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
@@ -350,7 +363,7 @@ function Footer() {
             <ul className="space-y-3 text-sm text-slate-400">
               {column.links.map((link) => (
                 <li key={link}>
-                  <a className="transition hover:text-white" href="#home">
+                  <a className="transition hover:text-white" href="#">
                     {link}
                   </a>
                 </li>
