@@ -1086,6 +1086,63 @@ Success `200`:
 }
 ```
 
+### `POST /api/ai/analyze-graph/`
+
+Request:
+
+```json
+{
+  "cooperative_id": "f15bd461-9609-49b1-93d2-fda2fa8729b3"
+}
+```
+
+### `GET /api/ai/analyze-graph/{cooperative_id}/`
+
+Both graph endpoints return the same shape.
+
+Success `200`:
+
+```json
+{
+  "cooperative_id": "f15bd461-9609-49b1-93d2-fda2fa8729b3",
+  "summary": {
+    "node_count": 14,
+    "edge_count": 18,
+    "member_count": 9,
+    "flagged_contribution_count": 1,
+    "risky_withdrawal_count": 1
+  },
+  "nodes": [
+    {
+      "id": "coop:f15bd461-9609-49b1-93d2-fda2fa8729b3",
+      "label": "Lagos Market Women Coop",
+      "type": "cooperative",
+      "risk_level": "medium",
+      "meta": {}
+    }
+  ],
+  "edges": [
+    {
+      "source": "member:abc",
+      "target": "coop:f15bd461-9609-49b1-93d2-fda2fa8729b3",
+      "relation": "member_of"
+    }
+  ],
+  "suspicious_clusters": [
+    {
+      "cluster_type": "risky_withdrawal",
+      "node_ids": [
+        "member:abc",
+        "coop:f15bd461-9609-49b1-93d2-fda2fa8729b3"
+      ],
+      "score": 0.91,
+      "reason": "High-risk withdrawal detected."
+    }
+  ],
+  "model": "graph_rules_fallback"
+}
+```
+
 ## Suggested frontend flow by role
 
 ### Member app

@@ -394,6 +394,19 @@ def main() -> None:
             200,
             "ai triage report",
         )
+        assert_status(
+            client.post(
+                f"{AI_URL}/api/ai/analyze-graph/",
+                json={"cooperative_id": cooperative_id},
+            ),
+            200,
+            "ai analyze graph post",
+        )
+        assert_status(
+            client.get(f"{AI_URL}/api/ai/analyze-graph/{cooperative_id}/"),
+            200,
+            "ai analyze graph get",
+        )
         assert_status(client.get(f"{AI_URL}/api/ai/health-scores/"), 200, "ai health scores")
         assert_status(client.get(f"{AI_URL}/api/ai/health-scores/all/"), 200, "ai health scores all")
 

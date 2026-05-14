@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from ai_service.services.anomaly_service import score_transaction
+from ai_service.services.graph_service import analyze_graph
 from ai_service.services.risk_service import score_all_cooperatives, score_cooperative
 from ai_service.services.whistleblower_service import triage_report
 
@@ -47,3 +48,23 @@ class AllHealthScoresView(APIView):
 
     def get(self, request):
         return Response({"scores": score_all_cooperatives()})
+
+
+class AnalyzeGraphView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, cooperative_id):
+        result = analyze_graph(cooperative_id)
+        if "error" in result:
+            return Response({"detail": result["error"]}, status=404)
+        return Response(result)
+
+    def post(self, request):
+        cooperative_id = request.data.get("cooperative_id")
+        if not cooperative_id:
+            return Response({"detail": "cooperative_id is required."}, status=400)
+        result = analyze_graph(cooperative_id)
+        if "error" in result:
+            return Response({"detail": result["error"]}, status=404)
+        return Response(result)

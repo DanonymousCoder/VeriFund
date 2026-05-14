@@ -77,6 +77,8 @@ For live virtual accounts, Squad’s docs indicate your settlement account must 
 
 - `FRONTEND_ROUTES.md`: full frontend route map, request bodies, and response shapes.
 - `AI_INTEGRATION_AND_HOSTING.md`: how to test AI endpoints, how the AI/ML dev should plug in models, and how to host the backend.
+- `AI_ML_REPLACEMENT_GUIDE.md`: exact file-by-file AI/ML replacement handoff.
+- `DEPLOY_FAST.md`: quickest hosting recommendation and deployment path so frontend can start integration.
 
 ## Route coverage status
 
