@@ -129,6 +129,40 @@ Typical errors:
 - `401` missing or bad JWT
 - `404` member missing
 
+### `PATCH /api/members/me/`
+
+Protected. Use for account settings/profile edit.
+
+Request:
+
+```json
+{
+  "first_name": "Adaobi",
+  "last_name": "Okafor",
+  "phone_number": "08012345678",
+  "email": "adaobi@example.com"
+}
+```
+
+Success `200`:
+
+```json
+{
+  "member": {
+    "id": "105a9639-4998-46bf-a510-a678b7016a45",
+    "first_name": "Adaobi",
+    "last_name": "Okafor",
+    "phone_number": "08012345678",
+    "email": "adaobi@example.com",
+    "bvn_verified": true,
+    "bvn_verified_at": "2026-05-14T12:31:22.000Z",
+    "role": "ADMIN",
+    "is_active": true,
+    "created_at": "2026-05-14T12:31:22.000Z"
+  }
+}
+```
+
 ## Cooperative Service
 
 ### `POST /api/cooperatives/`
@@ -480,11 +514,76 @@ Success `201`:
 
 ```json
 {
-  "message": "Direct debit mandate created. For the hackathon demo, prefer the virtual-account contribution flow.",
+  "message": "Direct debit mandate created successfully.",
   "mandate_id": "sqaudDDa27chviz8nwhv3d6w4gy",
   "merchant_reference": "VFMANDATE-ABC123456789",
   "status": "pending",
   "ready_to_debit": false
+}
+```
+
+### `GET /api/contributions/mandate/{merchant_reference}/`
+
+Protected. Re-syncs the local mandate record from Squad using the merchant reference.
+
+Success `200`:
+
+```json
+{
+  "mandate": {
+    "id": "b0f0d7b6-8d42-4e02-aab4-8756c8ce56bf",
+    "squad_mandate_id": "sqaudDDa27chviz8nwhv3d6w4gy",
+    "merchant_reference": "VFMANDATE-ABC123456789",
+    "status": "approved",
+    "ready_to_debit": true,
+    "is_approved": true
+  },
+  "provider_result": {
+    "success": true,
+    "message": "Success",
+    "data": {
+      "merchant_reference": "VFMANDATE-ABC123456789",
+      "mandate_id": "sqaudDDa27chviz8nwhv3d6w4gy",
+      "ready_to_debit": true,
+      "is_approved": true,
+      "status": "approved"
+    }
+  }
+}
+```
+
+### `POST /api/contributions/mandate/debit/`
+
+Protected.
+
+Request:
+
+```json
+{
+  "mandate_id": "sqaudDDa27chviz8nwhv3d6w4gy",
+  "amount_kobo": 50000,
+  "narration": "Monthly contribution debit",
+  "customer_email": "ada@example.com",
+  "pass_charge": false
+}
+```
+
+Success `201`:
+
+```json
+{
+  "mandate_id": "sqaudDDa27chviz8nwhv3d6w4gy",
+  "transaction_reference": "VFDEBIT-ABC123456789",
+  "provider_result": {
+    "success": true,
+    "message": "Sandbox mandate debit queued.",
+    "data": {
+      "transaction_ref": "VFDEBIT-ABC123456789",
+      "mandate_id": "sqaudDDa27chviz8nwhv3d6w4gy",
+      "status": "pending",
+      "amount": 50000
+    }
+  }
 }
 ```
 
@@ -507,6 +606,29 @@ When a webhook is processed successfully, the backend returns the normalized con
   "status": "CONFIRMED",
   "anomaly_score": 0.24,
   "contributed_at": "2026-05-14T12:44:10.000Z"
+}
+```
+
+### `GET /api/contributions/webhooks/events/`
+
+Protected. Internal support/audit view for received Squad webhooks.
+
+Success `200`:
+
+```json
+{
+  "events": [
+    {
+      "id": "9fcb265a-d2e7-4331-851f-262b0c5d6bca",
+      "event_name": "charge_successful",
+      "transaction_reference": "WEB-001",
+      "signature_valid": true,
+      "processing_status": "PROCESSED",
+      "error_detail": null,
+      "created_at": "2026-05-14T12:44:10.000Z",
+      "processed_at": "2026-05-14T12:44:10.000Z"
+    }
+  ]
 }
 ```
 
@@ -566,6 +688,56 @@ Typical errors:
 - `400` only treasurer/admin can initiate
 - `400` cooperative not found
 - `401` unauthenticated
+
+### `POST /api/withdrawals/lookup/`
+
+Protected. Use this before request creation so the frontend can confirm the destination account name.
+
+Request:
+
+```json
+{
+  "destination_bank_code": "000013",
+  "destination_account": "0123456789"
+}
+```
+
+Success `200`:
+
+```json
+{
+  "bank_code": "000013",
+  "account_number": "0123456789",
+  "account_name": "Sandbox Recipient",
+  "provider_message": "Sandbox account lookup succeeded."
+}
+```
+
+### `GET /api/withdrawals/{withdrawal_id}/`
+
+Protected.
+
+Success `200`:
+
+```json
+{
+  "id": "89776caf-9141-442e-a1ce-012c99bd1a7e",
+  "cooperative_id": "f15bd461-9609-49b1-93d2-fda2fa8729b3",
+  "requested_by": "105a9639-4998-46bf-a510-a678b7016a45",
+  "amount_kobo": 100000,
+  "destination_account": "0123456789",
+  "destination_bank_code": "000013",
+  "destination_account_name": "Sandbox Recipient",
+  "purpose": "Emergency member support",
+  "ai_risk_score": 0.12,
+  "status": "TRANSFER_PENDING",
+  "squad_transfer_ref": "TRF-89776caf-914",
+  "last_transfer_status": "Pending",
+  "transfer_error_detail": null,
+  "created_at": "2026-05-14T12:46:01.000Z",
+  "signatures": []
+}
+```
 
 ### `POST /api/withdrawals/{withdrawal_id}/sign/`
 
@@ -677,6 +849,42 @@ Success `200`:
 }
 ```
 
+### `POST /api/withdrawals/{withdrawal_id}/requery/`
+
+Protected. Ask Squad for the latest transfer state after a payout has been sent.
+
+Success `200`:
+
+```json
+{
+  "withdrawal": {
+    "id": "89776caf-9141-442e-a1ce-012c99bd1a7e",
+    "cooperative_id": "f15bd461-9609-49b1-93d2-fda2fa8729b3",
+    "requested_by": "105a9639-4998-46bf-a510-a678b7016a45",
+    "amount_kobo": 100000,
+    "destination_account": "0123456789",
+    "destination_bank_code": "000013",
+    "destination_account_name": "Sandbox Recipient",
+    "purpose": "Emergency member support",
+    "ai_risk_score": 0.12,
+    "status": "RELEASED",
+    "squad_transfer_ref": "TRF-89776caf-914",
+    "last_transfer_status": "Success",
+    "transfer_error_detail": null,
+    "created_at": "2026-05-14T12:46:01.000Z",
+    "signatures": []
+  },
+  "provider_result": {
+    "success": true,
+    "message": "Sandbox transfer requery succeeded.",
+    "data": {
+      "transaction_reference": "TRF-89776caf-914",
+      "status": "pending"
+    }
+  }
+}
+```
+
 ## Notification Service
 
 ### `POST /api/notify/sms/`
@@ -726,6 +934,34 @@ Validation error `400`:
 ```json
 {
   "detail": "phone_number and message are required."
+}
+```
+
+### `GET /api/notify/history/?limit=20`
+
+Public right now. Useful for admin/support views and demo proof that notifications were sent or queued.
+
+Success `200`:
+
+```json
+{
+  "notifications": [
+    {
+      "id": "2f1a1f77-1c85-4ec8-9f57-d00ea9e617f1",
+      "channel": "sms",
+      "recipient": "08012345678",
+      "message": "VeriFund smoke test",
+      "status": "queued_local",
+      "provider_response": "{}",
+      "error_detail": null,
+      "created_at": "2026-05-14T13:05:22.000Z"
+    }
+  ],
+  "filters": {
+    "recipient": null,
+    "status": null,
+    "limit": 20
+  }
 }
 ```
 

@@ -13,7 +13,7 @@ INSTALLED_APPS = [
 ]
 MIDDLEWARE = ["django.middleware.common.CommonMiddleware"]
 ROOT_URLCONF = "config.urls"
-DATABASES = {}  # notification service doesn't need DB
+DATABASES = {"default": env.db("DATABASE_URL")}
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["shared.middleware.auth.JWTAuthentication"],
 }
