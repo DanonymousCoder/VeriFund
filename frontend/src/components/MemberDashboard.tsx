@@ -9,19 +9,20 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
+import { Link, NavLink } from 'react-router-dom'
 
 type NavItem = {
   name: string
   icon: LucideIcon
-  active?: boolean
+  to: string
 }
 
 const navItems: NavItem[] = [
-  { name: 'Dashboard', icon: LayoutDashboard, active: true },
-  { name: 'Trust Score', icon: ShieldCheck },
-  { name: 'Withdrawals', icon: Wallet },
-  { name: 'Fraud Alerts', icon: AlertTriangle },
-  { name: 'Verification', icon: CheckSquare },
+  { name: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
+  { name: 'Trust Score', icon: ShieldCheck, to: '/profile' },
+  { name: 'Withdrawals', icon: Wallet, to: '/authorize' },
+  { name: 'Fraud Alerts', icon: AlertTriangle, to: '/regulatory' },
+  { name: 'Verification', icon: CheckSquare, to: '/verify' },
 ]
 
 const contributionHistory = [
@@ -57,26 +58,29 @@ function Sidebar() {
 
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => (
-          <button
+          <NavLink
             key={item.name}
-            type="button"
-            className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
-              item.active ? 'bg-[#005AD2] text-white' : 'text-gray-500 hover:bg-gray-50'
-            }`}
+            to={item.to}
+            end={item.to === '/dashboard'}
+            className={({ isActive }) =>
+              `flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+                isActive ? 'bg-[#005AD2] text-white' : 'text-gray-500 hover:bg-gray-50'
+              }`
+            }
           >
             <item.icon size={16} />
             {item.name}
-          </button>
+          </NavLink>
         ))}
       </nav>
 
       <div className="space-y-4 border-t border-gray-100 pt-4">
-        <button
-          type="button"
+        <Link
+          to="/authorize"
           className="flex w-full items-center justify-center gap-2 rounded-md bg-[#005AD2] py-2 text-[10px] font-bold text-white"
         >
           <Plus size={14} /> New Withdrawal
-        </button>
+        </Link>
         <div className="space-y-1">
           <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-xs text-gray-500">
             <Settings size={16} /> Settings
@@ -91,6 +95,11 @@ function Sidebar() {
 }
 
 function DashboardHeader() {
+  const score = 85
+  const r = 41
+  const circumference = 2 * Math.PI * r
+  const dashOffset = circumference - (circumference * score) / 100
+
   return (
     <div className="grid grid-cols-3 gap-6 mb-6">
       <div className="col-span-2 relative overflow-hidden rounded-xl border border-blue-100 bg-white p-6 shadow-sm">
@@ -114,9 +123,36 @@ function DashboardHeader() {
       <div className="flex flex-col items-center justify-center rounded-xl border border-gray-100 bg-white p-6 shadow-sm relative">
         <h3 className="mb-4 text-[10px] font-bold uppercase tracking-widest text-gray-400">Trust Score</h3>
         <div className="relative flex h-24 w-24 items-center justify-center">
-          <div className="absolute inset-0 rounded-lg border-4 border-emerald-400 rotate-45" />
-          <div className="text-center">
-            <p className="text-xl font-bold leading-none text-gray-800">85</p>
+          <style>{`
+            @keyframes fillProgress {
+              from {
+                stroke-dashoffset: ${circumference};
+              }
+              to {
+                stroke-dashoffset: ${dashOffset};
+              }
+            }
+          `}</style>
+          <svg viewBox="0 0 100 100" className="w-20 h-20">
+            <circle cx="50" cy="50" r={r} stroke="#F1F5F9" strokeWidth="8" fill="none" />
+            <circle
+              cx="50"
+              cy="50"
+              r={r}
+              stroke="#10B981"
+              strokeWidth="8"
+              fill="none"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="round"
+              transform="rotate(-90 50 50)"
+              style={{
+                animation: 'fillProgress 2s ease-out forwards'
+              }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <p className="text-xl font-bold leading-none text-gray-800">{score}</p>
             <p className="text-[10px] text-gray-400">/100</p>
           </div>
         </div>
