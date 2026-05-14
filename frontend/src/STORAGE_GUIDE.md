@@ -1,0 +1,255 @@
+/\*\*
+
+- VeriFund Storage Abstraction Guide
+-
+- This guide explains how to use the storage layer and how to migrate from
+- localStorage to a backend API when ready.
+  \*/
+
+/\*\*
+
+- ARCHITECTURE OVERVIEW
+- =====================
+-
+- The storage layer is designed with these principles:
+- 1.  Abstraction: Components don't know about localStorage or API calls
+- 2.  Provider Pattern: AuthProvider manages global auth state
+- 3.  Custom Hooks: useMemberProfile, useDashboardData, useAuth for easy access
+- 4.  Clean Separation: Storage implementation can be swapped without touching components
+-
+-
+- FILE STRUCTURE
+- ==============
+-
+- src/
+- types/
+-     storage.ts           - Type definitions for all persisted data
+- services/
+-     storage.ts           - Storage abstraction layer and localStorage implementation
+- hooks/
+-     useAuth.tsx          - Auth context provider and hook
+-     useMemberData.tsx    - Hooks for member profile and dashboard data
+-     index.ts             - Barrel export of all hooks
+-
+-
+- CURRENT IMPLEMENTATION
+- ======================
+-
+- The storage service is currently backed by localStorage:
+-
+- storageService
+-     ├── auth.getSession() / auth.setSession()
+-     ├── member.getProfile() / member.setProfile()
+-     └── dashboard.getData() / dashboard.setData()
+-
+- All methods are async (Promise-based) to support future API calls.
+-
+-
+- USAGE PATTERNS
+- ==============
+-
+- 1.  AUTHENTICATION IN COMPONENTS
+-
+- import { useAuth } from '@/hooks'
+-
+- function MyComponent() {
+-      const { session, isAuthenticated, login, logout } = useAuth()
+-
+-      if (!isAuthenticated) {
+-        return <Navigate to="/login" />
+-      }
+-
+-      return <div>Welcome {session?.name}</div>
+- }
+-
+-
+- 2.  SAVING AUTH ON LOGIN
+-
+- import { useAuth } from '@/hooks'
+-
+- function Login() {
+-      const { login } = useAuth()
+-
+-      const handleLogin = async (credentials) => {
+-        // TODO: Call backend API with credentials
+-        // const response = await fetch('/api/auth/login', { ... })
+-
+-        const session = {
+-          memberId: 'VF-90210',
+-          cooperativeId: 'COOP-001',
+-          email: 'user@example.com',
+-          name: 'Jane Doe',
+-          trustScore: 85,
+-          verificationStatus: 'verified',
+-          timestamp: Date.now(),
+-        }
+-        await login(session)
+-      }
+- }
+-
+-
+- 3.  ACCESSING MEMBER DATA
+-
+- import { useMemberProfile } from '@/hooks'
+-
+- function Dashboard() {
+-      const { profile, isLoading, error } = useMemberProfile()
+-
+-      if (isLoading) return <div>Loading...</div>
+-      if (error) return <div>Error: {error}</div>
+-
+-      return <div>Balance: {profile?.savingsBalance}</div>
+- }
+-
+-
+- 4.  UPDATING DASHBOARD DATA
+-
+- import { useDashboardData } from '@/hooks'
+-
+- function Dashboard() {
+-      const { data, save } = useDashboardData()
+-
+-      const handleRefresh = async () => {
+-        // TODO: Fetch fresh data from backend API
+-        // const fresh = await fetch('/api/dashboard').then(r => r.json())
+-
+-        const updated = { ...data, savingsBalance: 1250000 }
+-        await save(updated)
+-      }
+- }
+-
+-
+- MIGRATION TO BACKEND
+- ====================
+-
+- When your backend is ready, follow these steps:
+-
+- 1.  UPDATE TYPE DEFINITIONS (if needed)
+- src/types/storage.ts
+- - Verify types match your API response schemas
+- - Keep naming consistent for easy testing
+-
+- 2.  CREATE API STORAGE DRIVER
+- Create src/services/apiStorage.ts:
+-
+-      import type { StorageDriver } from './storage'
+-      import type { AuthSession, MemberProfile, DashboardData } from '../types/storage'
+-
+-      export class ApiStorageDriver implements StorageDriver {
+-        constructor(private baseUrl: string) {}
+-
+-        async getAuthSession(): Promise<AuthSession | null> {
+-          try {
+-            const response = await fetch(`${this.baseUrl}/api/auth/session`, {
+-              credentials: 'include', // Include cookies for auth
+-            })
+-            if (!response.ok) return null
+-            return response.json()
+-          } catch {
+-            return null
+-          }
+-        }
+-
+-        async setAuthSession(session: AuthSession | null): Promise<void> {
+-          if (session === null) {
+-            await fetch(`${this.baseUrl}/api/auth/logout`, {
+-              method: 'POST',
+-              credentials: 'include',
+-            })
+-          } else {
+-            await fetch(`${this.baseUrl}/api/auth/session`, {
+-              method: 'POST',
+-              headers: { 'Content-Type': 'application/json' },
+-              body: JSON.stringify(session),
+-              credentials: 'include',
+-            })
+-          }
+-        }
+-
+-        async getMemberProfile(): Promise<MemberProfile | null> {
+-          // Similar pattern for API calls
+-        }
+-
+-        // ... implement remaining methods
+-      }
+-
+- 3.  SWAP IMPLEMENTATION
+- In src/services/storage.ts, replace:
+-
+-      // OLD:
+-      const storageDriver: StorageDriver = new LocalStorageDriver()
+-
+-      // NEW:
+-      import { ApiStorageDriver } from './apiStorage'
+-      const storageDriver: StorageDriver = new ApiStorageDriver(
+-        process.env.REACT_APP_API_URL || 'http://localhost:3000'
+-      )
+-
+- 4.  REMOVE LOCALSTORAGE DRIVER
+- Once fully migrated and tested:
+- - Delete LocalStorageDriver class
+- - Delete STORAGE_KEYS constant
+- - Clean up src/services/storage.ts
+-
+- 5.  KEEP HOOKS UNCHANGED
+- No changes needed to:
+- - useAuth hook
+- - useMemberProfile hook
+- - useDashboardData hook
+- - Component code
+-
+- Components will automatically use the new API implementation!
+-
+-
+- EXAMPLE API ENDPOINTS
+- =====================
+-
+- Suggested backend API design:
+-
+- GET /api/auth/session - Get current auth session
+- POST /api/auth/login - Login with credentials
+- POST /api/auth/logout - Logout
+- GET /api/members/profile - Get member profile
+- PUT /api/members/profile - Update member profile
+- GET /api/dashboard - Get dashboard data
+- PUT /api/dashboard - Update dashboard data
+-
+-
+- TESTING DURING MIGRATION
+- =========================
+-
+- You can gradually migrate by:
+- 1.  Keep localStorage implementation as fallback
+- 2.  Create an environment variable USE_API_STORAGE = false by default
+- 3.  Switch to API for specific endpoints first
+- 4.  Run tests with both implementations
+- 5.  Once stable on API, remove localStorage code
+-
+-
+- ERROR HANDLING PATTERNS
+- ======================
+-
+- async getAuthSession(): Promise<AuthSession | null> {
+-     try {
+-       // ... fetch from API
+-       if (!response.ok) {
+-         throw new Error(`API error: ${response.status}`)
+-       }
+-       return response.json()
+-     } catch (error) {
+-       console.error('Failed to retrieve auth session:', error)
+-       return null // Graceful fallback
+-     }
+- }
+-
+-
+- KEY BENEFITS OF THIS APPROACH
+- ==============================
+-
+- ✓ Zero component changes when migrating to backend
+- ✓ Easy to test with mock storage implementation
+- ✓ Clean separation between storage mechanism and app logic
+- ✓ Gradual migration possible (one method at a time)
+- ✓ Fallback support (e.g., offline-first capabilities)
+- ✓ Type-safe with full TypeScript support
+  \*/

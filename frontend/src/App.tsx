@@ -12,7 +12,11 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
-import { Login, SignUp } from './components'
+import { Login, MemberDashboard, SignUp } from './components'
+import IdentityVerification from './components/IdentityVerification'
+import PublicProfileDashboard from './components/PublicProfileDashboard'
+import MultiSigAuthorization from './components/MultiSigAuthorization'
+import RegulatoryDashboard from './components/RegulatoryDashboard'
 import heroImage from './assets/hero.png'
 
 const navigationItems = [
@@ -95,6 +99,11 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
+      <Route path="/dashboard" element={<MemberDashboard />} />
+      <Route path="/verify" element={<IdentityVerification />} />
+      <Route path="/profile" element={<PublicProfileDashboard />} />
+      <Route path="/authorize" element={<MultiSigAuthorization />} />
+      <Route path="/regulatory" element={<RegulatoryDashboard />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
