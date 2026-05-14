@@ -1,0 +1,73 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "sync"
+  recursive_type_depth = 5
+}
+
+model Contribution {
+  id                  String             @id @default(uuid())
+  memberId            String             @map("member_id")
+  cooperativeId       String             @map("cooperative_id")
+  amountKobo          BigInt             @map("amount_kobo")
+  squadTransactionRef String             @unique @map("squad_transaction_ref")
+  mandateId           String?            @map("mandate_id")
+  contributionVirtualAccountId String?   @map("contribution_virtual_account_id")
+  paymentChannel      String             @default("virtual-account") @map("payment_channel")
+  status              ContributionStatus @default(PENDING)
+  anomalyScore        Decimal?           @map("anomaly_score") @db.Decimal(4, 3)
+  contributedAt       DateTime           @default(now()) @map("contributed_at")
+
+  @@map("contributions")
+}
+
+model ContributionVirtualAccount {
+  id                  String   @id @default(uuid())
+  memberId            String   @map("member_id")
+  cooperativeId       String   @map("cooperative_id")
+  customerIdentifier  String   @unique @map("customer_identifier")
+  virtualAccountNumber String  @unique @map("virtual_account_number")
+  accountName         String?  @map("account_name")
+  bankName            String?  @map("bank_name")
+  bvnLast4            String?  @map("bvn_last4")
+  status              String   @default("active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @default(now()) @map("updated_at")
+
+  @@map("contribution_virtual_accounts")
+}
+
+model DirectDebitMandate {
+  id            String  @id @default(uuid())
+  memberId      String  @map("member_id")
+  cooperativeId String  @map("cooperative_id")
+  squadMandateId String @unique @map("squad_mandate_id")
+  merchantReference String @unique @map("merchant_reference")
+  accountNumber String  @map("account_number")
+  bankCode      String  @map("bank_code")
+  customerEmail String? @map("customer_email")
+  description   String?
+  amountKobo    BigInt  @map("amount_kobo")
+  debitDay      Int     @default(1) @map("debit_day")
+  frequency     String  @default("monthly")
+  status        String  @default("pending")
+  isApproved    Boolean @default(false) @map("is_approved")
+  readyToDebit  Boolean @default(false) @map("ready_to_debit")
+  startDate     DateTime? @map("start_date")
+  endDate       DateTime? @map("end_date")
+  isActive      Boolean @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("direct_debit_mandates")
+}
+
+enum ContributionStatus {
+  PENDING
+  CONFIRMED
+  FLAGGED
+  FAILED
+}

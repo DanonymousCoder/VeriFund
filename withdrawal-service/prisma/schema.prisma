@@ -1,0 +1,52 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "sync"
+  recursive_type_depth = 5
+}
+
+model WithdrawalRequest {
+  id                  String            @id @default(uuid())
+  cooperativeId       String            @map("cooperative_id")
+  requestedBy         String            @map("requested_by")
+  amountKobo          BigInt            @map("amount_kobo")
+  destinationAccount  String            @map("destination_account")
+  destinationBankCode String            @map("destination_bank_code")
+  purpose             String
+  aiRiskScore         Decimal?          @map("ai_risk_score") @db.Decimal(4, 3)
+  status              WithdrawalStatus  @default(PENDING)
+  squadTransferRef    String?           @map("squad_transfer_ref")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  signatures          WithdrawalSignature[]
+
+  @@map("withdrawal_requests")
+}
+
+model WithdrawalSignature {
+  id                  String            @id @default(uuid())
+  withdrawalRequestId String            @map("withdrawal_request_id")
+  signedBy            String            @map("signed_by")
+  role                SignerRole
+  signedAt            DateTime          @default(now()) @map("signed_at")
+  withdrawalRequest   WithdrawalRequest @relation(fields: [withdrawalRequestId], references: [id])
+
+  @@map("withdrawal_signatures")
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PARTIALLY_SIGNED
+  APPROVED
+  REJECTED
+  RELEASED
+}
+
+enum SignerRole {
+  TREASURER
+  EXECUTIVE1
+  EXECUTIVE2
+}

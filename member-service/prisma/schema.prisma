@@ -1,0 +1,35 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "sync"
+  recursive_type_depth = 5
+}
+
+model Member {
+  id            String    @id @default(uuid())
+  bvnHash       String    @unique @map("bvn_hash")
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  phoneNumber   String    @unique @map("phone_number")
+  email         String?   @unique
+  passwordHash  String    @map("password_hash")
+  bvnVerified   Boolean   @default(false) @map("bvn_verified")
+  bvnVerifiedAt DateTime? @map("bvn_verified_at")
+  role          Role      @default(MEMBER)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("members")
+}
+
+enum Role {
+  MEMBER
+  TREASURER
+  EXECUTIVE
+  ADMIN
+  REGULATOR
+}
