@@ -73,4 +73,27 @@ For live virtual accounts, Squad’s docs indicate your settlement account must 
 5. Squad webhook records contribution and anomaly-scores it.
 6. Trust/regulator screens reflect the new evidence.
 
-See `FRONTEND_ROUTES.md` for the short frontend handoff.
+## Team handoff docs
+
+- `FRONTEND_ROUTES.md`: full frontend route map, request bodies, and response shapes.
+- `AI_INTEGRATION_AND_HOSTING.md`: how to test AI endpoints, how the AI/ML dev should plug in models, and how to host the backend.
+
+## Route coverage status
+
+The current backend already has working endpoints for:
+
+- auth and member profile
+- cooperative creation, trust score, and regulator summary
+- contribution virtual accounts, contribution history, mandate creation, webhook ingestion, and audit view
+- withdrawal request, co-sign, and pending list
+- SMS notifications
+- AI scoring and triage routes
+
+What is not built out yet is mostly breadth, not core flow:
+
+- no advanced admin CRUD screens yet
+- no pagination/filter params on most list endpoints yet
+- no email/push notification service yet
+- AI endpoints are production-shaped but still use heuristic fallback logic by default
+
+See `FRONTEND_ROUTES.md` for the exact contract the frontend should integrate against.
