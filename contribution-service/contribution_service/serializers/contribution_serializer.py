@@ -26,6 +26,7 @@ class CreateContributionVirtualAccountSerializer(serializers.Serializer):
 
 
 class DebitMandateSerializer(serializers.Serializer):
+    mandate_id = serializers.CharField()
     amount_kobo = serializers.IntegerField(min_value=1)
     narration = serializers.CharField()
     customer_email = serializers.EmailField(required=False, allow_blank=True)

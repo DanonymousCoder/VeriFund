@@ -132,3 +132,64 @@ def get_member_profile(member_id: str) -> dict | None:
     if not member:
         return None
     return _serialize_member(member)
+
+
+def update_member_profile(member_id: str, data: dict) -> dict:
+    member = fetch_one("SELECT id FROM members WHERE id = %s", [member_id])
+    if not member:
+        return {"error": "Member not found."}
+
+    current = fetch_one(
+        """
+        SELECT id, first_name, last_name, phone_number, email
+        FROM members
+        WHERE id = %s
+        """,
+        [member_id],
+    )
+    if not current:
+        return {"error": "Member not found."}
+
+    phone_number = data.get("phone_number", current["phone_number"])
+    email = data["email"] if "email" in data else current.get("email")
+    duplicate = fetch_one(
+        """
+        SELECT id
+        FROM members
+        WHERE id <> %s AND (phone_number = %s OR (%s IS NOT NULL AND email = %s))
+        """,
+        [member_id, phone_number, email, email],
+    )
+    if duplicate:
+        return {"error": "Another member already uses this phone number or email."}
+
+    updated = fetch_one(
+        """
+        UPDATE members
+        SET
+            first_name = %s,
+            last_name = %s,
+            phone_number = %s,
+            email = %s
+        WHERE id = %s
+        RETURNING
+            id,
+            first_name,
+            last_name,
+            phone_number,
+            email,
+            bvn_verified,
+            bvn_verified_at,
+            role,
+            is_active,
+            created_at
+        """,
+        [
+            data.get("first_name", current["first_name"]),
+            data.get("last_name", current["last_name"]),
+            phone_number,
+            email,
+            member_id,
+        ],
+    )
+    return {"member": _serialize_member(updated)}

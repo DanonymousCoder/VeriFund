@@ -83,6 +83,18 @@ CREATE TABLE IF NOT EXISTS contributions (
     contributed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS squad_webhook_events (
+    id VARCHAR(36) PRIMARY KEY,
+    event_name VARCHAR(64) NOT NULL,
+    transaction_reference VARCHAR(128),
+    signature_valid BOOLEAN NOT NULL DEFAULT FALSE,
+    processing_status VARCHAR(32) NOT NULL DEFAULT 'RECEIVED',
+    payload_json TEXT NOT NULL,
+    error_detail TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMPTZ NULL
+);
+
 CREATE TABLE IF NOT EXISTS withdrawal_requests (
     id VARCHAR(36) PRIMARY KEY,
     cooperative_id VARCHAR(36) NOT NULL,
@@ -90,10 +102,13 @@ CREATE TABLE IF NOT EXISTS withdrawal_requests (
     amount_kobo BIGINT NOT NULL,
     destination_account VARCHAR(32) NOT NULL,
     destination_bank_code VARCHAR(16) NOT NULL,
+    destination_account_name VARCHAR(255),
     purpose TEXT NOT NULL,
     ai_risk_score DECIMAL(4, 3),
     status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
     squad_transfer_ref VARCHAR(128),
+    last_transfer_status VARCHAR(64),
+    transfer_error_detail TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -104,6 +119,24 @@ CREATE TABLE IF NOT EXISTS withdrawal_signatures (
     role VARCHAR(32) NOT NULL,
     signed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS notification_logs (
+    id VARCHAR(36) PRIMARY KEY,
+    channel VARCHAR(32) NOT NULL,
+    recipient VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    provider_response TEXT,
+    error_detail TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE withdrawal_requests
+    ADD COLUMN IF NOT EXISTS destination_account_name VARCHAR(255);
+ALTER TABLE withdrawal_requests
+    ADD COLUMN IF NOT EXISTS last_transfer_status VARCHAR(64);
+ALTER TABLE withdrawal_requests
+    ADD COLUMN IF NOT EXISTS transfer_error_detail TEXT;
 """
 
 

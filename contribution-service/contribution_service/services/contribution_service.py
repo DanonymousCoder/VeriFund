@@ -1,6 +1,7 @@
 import os
 import re
 import uuid
+import json
 from datetime import datetime, timezone
 
 import httpx
@@ -9,6 +10,8 @@ from shared.db import atomic, execute, fetch_all, fetch_one
 from shared.squad.client import (
     create_direct_debit_mandate,
     create_virtual_account,
+    debit_mandate,
+    get_mandate_by_reference,
     simulate_virtual_account_payment,
 )
 
@@ -77,6 +80,21 @@ def ensure_contribution_schema() -> None:
         )
         """
     )
+    execute(
+        """
+        CREATE TABLE IF NOT EXISTS squad_webhook_events (
+            id VARCHAR(36) PRIMARY KEY,
+            event_name VARCHAR(64) NOT NULL,
+            transaction_reference VARCHAR(128),
+            signature_valid BOOLEAN NOT NULL DEFAULT FALSE,
+            processing_status VARCHAR(32) NOT NULL DEFAULT 'RECEIVED',
+            payload_json TEXT NOT NULL,
+            error_detail TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            processed_at TIMESTAMPTZ NULL
+        )
+        """
+    )
 
 
 def _serialize_contribution(row: dict) -> dict:
@@ -136,6 +154,40 @@ def _extract_mandate_lookup(webhook_data: dict) -> str | None:
         or data.get("mandateId")
         or metadata.get("mandate_id")
         or metadata.get("mandateId")
+    )
+
+
+def log_webhook_event(
+    webhook_data: dict,
+    *,
+    signature_valid: bool,
+    processing_status: str,
+    error_detail: str | None = None,
+) -> None:
+    ensure_contribution_schema()
+    execute(
+        """
+        INSERT INTO squad_webhook_events (
+            id,
+            event_name,
+            transaction_reference,
+            signature_valid,
+            processing_status,
+            payload_json,
+            error_detail,
+            processed_at
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+        """,
+        [
+            str(uuid.uuid4()),
+            _extract_event_name(webhook_data) or "unknown",
+            _extract_transaction_reference(webhook_data),
+            signature_valid,
+            processing_status,
+            json.dumps(webhook_data),
+            error_detail,
+        ],
     )
 
 
@@ -479,11 +531,103 @@ def create_mandate(member_id: str, cooperative_id: str, data: dict) -> dict:
             ],
         )
     return {
-        "message": "Direct debit mandate created. For the hackathon demo, prefer the virtual-account contribution flow.",
+        "message": "Direct debit mandate created successfully.",
         "mandate_id": mandate_id,
         "merchant_reference": transaction_reference,
         "status": mandate_data.get("status", "pending"),
         "ready_to_debit": bool(mandate_data.get("ready_to_debit")),
+    }
+
+
+def sync_mandate_status(reference: str) -> dict:
+    ensure_contribution_schema()
+    local = fetch_one(
+        """
+        SELECT id, squad_mandate_id, merchant_reference
+        FROM direct_debit_mandates
+        WHERE merchant_reference = %s
+        """,
+        [reference],
+    )
+    if not local:
+        return {"error": "Mandate reference not found."}
+
+    result = get_mandate_by_reference(reference)
+    if not result.get("success"):
+        return {"error": result.get("message", "Failed to fetch mandate status from Squad.")}
+
+    payload = result.get("data", {})
+    if isinstance(payload, list):
+        payload = payload[0] if payload else {}
+
+    updated = fetch_one(
+        """
+        UPDATE direct_debit_mandates
+        SET
+            status = %s,
+            ready_to_debit = %s,
+            is_approved = %s
+        WHERE merchant_reference = %s
+        RETURNING
+            id,
+            squad_mandate_id,
+            merchant_reference,
+            status,
+            ready_to_debit,
+            is_approved
+        """,
+        [
+            payload.get("status", "pending"),
+            bool(payload.get("ready_to_debit")),
+            bool(payload.get("is_approved") or payload.get("approved")),
+            reference,
+        ],
+    )
+    return {"mandate": updated, "provider_result": result}
+
+
+def debit_existing_mandate(member_id: str, data: dict) -> dict:
+    ensure_contribution_schema()
+    mandate = fetch_one(
+        """
+        SELECT
+            id,
+            member_id,
+            cooperative_id,
+            squad_mandate_id,
+            merchant_reference,
+            customer_email,
+            status,
+            ready_to_debit,
+            is_active
+        FROM direct_debit_mandates
+        WHERE squad_mandate_id = %s
+        """,
+        [data["mandate_id"]],
+    )
+    if not mandate:
+        return {"error": "Mandate not found."}
+    if mandate["member_id"] != member_id:
+        return {"error": "You can only debit your own mandate."}
+    if not mandate.get("is_active"):
+        return {"error": "Mandate is no longer active."}
+
+    transaction_reference = f"VFDEBIT-{uuid.uuid4().hex[:20].upper()}"
+    result = debit_mandate(
+        amount_kobo=data["amount_kobo"],
+        mandate_id=data["mandate_id"],
+        transaction_reference=transaction_reference,
+        narration=data["narration"],
+        customer_email=data.get("customer_email") or mandate.get("customer_email") or "member@verifund.local",
+        pass_charge=bool(data.get("pass_charge")),
+    )
+    if not result.get("success"):
+        return {"error": result.get("message", "Failed to debit mandate.")}
+
+    return {
+        "mandate_id": data["mandate_id"],
+        "transaction_reference": transaction_reference,
+        "provider_result": result,
     }
 
 
@@ -652,6 +796,27 @@ def record_contribution(webhook_data: dict) -> dict:
 
     _send_receipt(member_id, cooperative_id, amount_kobo, transaction_ref, status)
     return _serialize_contribution(contribution)
+
+
+def list_webhook_events(limit: int = 50) -> list[dict]:
+    ensure_contribution_schema()
+    return fetch_all(
+        """
+        SELECT
+            id,
+            event_name,
+            transaction_reference,
+            signature_valid,
+            processing_status,
+            error_detail,
+            created_at,
+            processed_at
+        FROM squad_webhook_events
+        ORDER BY created_at DESC
+        LIMIT %s
+        """,
+        [limit],
+    )
 
 
 def get_member_contributions(member_id: str) -> list[dict]:

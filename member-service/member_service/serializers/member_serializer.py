@@ -26,3 +26,10 @@ class MemberSerializer(serializers.Serializer):
     role = serializers.CharField()
     is_active = serializers.BooleanField()
     created_at = serializers.DateTimeField()
+
+
+class UpdateMemberProfileSerializer(serializers.Serializer):
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    phone_number = serializers.CharField(required=False)
+    email = serializers.EmailField(required=False, allow_null=True, allow_blank=True)

@@ -107,6 +107,15 @@ def main() -> None:
             200,
             "member profile",
         )
+        assert_status(
+            client.patch(
+                f"{GATEWAY_URL}/api/members/me/",
+                headers=auth_headers(token1),
+                json={"first_name": f"Updated{run_id}", "email": f"updated-{run_id}@verifund.local"},
+            ),
+            200,
+            "member profile patch",
+        )
 
         cooperative = assert_status(
             client.post(
@@ -228,6 +237,72 @@ def main() -> None:
             201,
             "direct debit mandate",
         )
+        mandate_status = assert_status(
+            client.get(
+                f"{GATEWAY_URL}/api/contributions/mandate/VFMANDATE-DOES-NOT-EXIST/",
+                headers=auth_headers(token1),
+            ),
+            404,
+            "missing mandate status",
+        )
+
+        created_mandate = client.post(
+            f"{GATEWAY_URL}/api/contributions/mandate/",
+            headers=auth_headers(token1),
+            json={
+                "cooperative_id": cooperative_id,
+                "amount_kobo": 160000,
+                "account_number": "0123456789",
+                "bank_code": "000013",
+                "debit_day": 5,
+                "bvn": "12345678901",
+                "address": "22 Marina Road, Lagos",
+                "customer_email": admin1["member"]["email"],
+                "description": "Second monthly contribution mandate",
+            },
+        )
+        created_mandate_data = assert_status(created_mandate, 201, "create second mandate")
+        assert_status(
+            client.get(
+                f"{GATEWAY_URL}/api/contributions/mandate/{created_mandate_data['merchant_reference']}/",
+                headers=auth_headers(token1),
+            ),
+            200,
+            "mandate status",
+        )
+        assert_status(
+            client.post(
+                f"{GATEWAY_URL}/api/contributions/mandate/debit/",
+                headers=auth_headers(token1),
+                json={
+                    "mandate_id": created_mandate_data["mandate_id"],
+                    "amount_kobo": 50000,
+                    "narration": "Smoke debit",
+                    "customer_email": admin1["member"]["email"],
+                    "pass_charge": False,
+                },
+            ),
+            201,
+            "mandate debit",
+        )
+        assert_status(
+            client.get(
+                f"{GATEWAY_URL}/api/contributions/webhooks/events/",
+                headers=auth_headers(token1),
+            ),
+            200,
+            "webhook event list",
+        )
+
+        assert_status(
+            client.post(
+                f"{GATEWAY_URL}/api/withdrawals/lookup/",
+                headers=auth_headers(token1),
+                json={"destination_bank_code": "000013", "destination_account": "0123456789"},
+            ),
+            200,
+            "withdrawal recipient lookup",
+        )
 
         withdrawal = assert_status(
             client.post(
@@ -245,6 +320,14 @@ def main() -> None:
             "withdrawal request",
         )
         withdrawal_id = withdrawal["id"]
+        assert_status(
+            client.get(
+                f"{GATEWAY_URL}/api/withdrawals/{withdrawal_id}/",
+                headers=auth_headers(token1),
+            ),
+            200,
+            "withdrawal detail",
+        )
 
         assert_status(
             client.get(
@@ -272,6 +355,14 @@ def main() -> None:
             ),
             200,
             "withdrawal sign 2",
+        )
+        assert_status(
+            client.post(
+                f"{GATEWAY_URL}/api/withdrawals/{withdrawal_id}/requery/",
+                headers=auth_headers(token1),
+            ),
+            200,
+            "withdrawal requery",
         )
 
         assert_status(
@@ -313,6 +404,11 @@ def main() -> None:
             ),
             200,
             "notification sms",
+        )
+        assert_status(
+            client.get(f"{NOTIFY_URL}/api/notify/history/?limit=5"),
+            200,
+            "notification history",
         )
 
         print(

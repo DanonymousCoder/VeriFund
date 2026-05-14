@@ -4,7 +4,7 @@ import uuid
 import httpx
 
 from shared.db import atomic, fetch_all, fetch_one
-from shared.squad.client import initiate_transfer
+from shared.squad.client import initiate_transfer, lookup_account_name, requery_transfer
 
 
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8005").rstrip("/")
@@ -29,10 +29,13 @@ def _serialize_withdrawal(row: dict, signatures: list[dict] | None = None) -> di
         "amount_kobo": int(row["amount_kobo"]),
         "destination_account": row["destination_account"],
         "destination_bank_code": row["destination_bank_code"],
+        "destination_account_name": row.get("destination_account_name"),
         "purpose": row["purpose"],
         "ai_risk_score": float(row["ai_risk_score"]) if row.get("ai_risk_score") is not None else None,
         "status": row["status"],
         "squad_transfer_ref": row.get("squad_transfer_ref"),
+        "last_transfer_status": row.get("last_transfer_status"),
+        "transfer_error_detail": row.get("transfer_error_detail"),
         "created_at": row.get("created_at"),
         "signatures": signatures or [],
     }
@@ -65,6 +68,62 @@ def _get_ai_risk(data: dict) -> float:
         return round(min(amount / 100_000_000, 1.0), 3)
 
 
+def _fetch_withdrawal(withdrawal_id: str) -> dict | None:
+    return fetch_one(
+        """
+        SELECT
+            id,
+            cooperative_id,
+            requested_by,
+            amount_kobo,
+            destination_account,
+            destination_bank_code,
+            destination_account_name,
+            purpose,
+            ai_risk_score,
+            status,
+            squad_transfer_ref,
+            last_transfer_status,
+            transfer_error_detail,
+            created_at
+        FROM withdrawal_requests
+        WHERE id = %s
+        """,
+        [withdrawal_id],
+    )
+
+
+def lookup_recipient(bank_code: str, account_number: str) -> dict:
+    result = lookup_account_name(bank_code=bank_code, account_number=account_number)
+    if not result.get("success"):
+        return {"error": result.get("message", "Failed to resolve destination account.")}
+    data = result.get("data", {})
+    return {
+        "bank_code": bank_code,
+        "account_number": account_number,
+        "account_name": data.get("account_name"),
+        "provider_message": result.get("message"),
+    }
+
+
+def _map_transfer_result(result: dict) -> tuple[str, str | None, str | None]:
+    data = result.get("data", {})
+    raw_status = str(
+        data.get("transaction_status")
+        or data.get("status")
+        or result.get("message")
+        or ""
+    ).strip()
+    normalized = raw_status.lower()
+    if result.get("success") and normalized in {"success", "successful", "released", "completed"}:
+        return "RELEASED", raw_status or "Success", None
+    if normalized in {"pending", "processing", "approved"}:
+        return "TRANSFER_PENDING", raw_status or "Pending", None
+    if result.get("success") and not normalized:
+        return "TRANSFER_PENDING", "Pending", None
+    return "APPROVED", raw_status or "Failed", result.get("message")
+
+
 def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
     if role not in {"TREASURER", "ADMIN"}:
         return {"error": "Only a treasurer or admin can initiate a withdrawal."}
@@ -72,6 +131,13 @@ def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
     cooperative = fetch_one("SELECT id, name FROM cooperatives WHERE id = %s", [data["cooperative_id"]])
     if not cooperative:
         return {"error": "Cooperative not found."}
+
+    recipient_lookup = lookup_recipient(
+        bank_code=data["destination_bank_code"],
+        account_number=data["destination_account"],
+    )
+    if "error" in recipient_lookup or not recipient_lookup.get("account_name"):
+        return {"error": recipient_lookup.get("error", "Destination account lookup failed.")}
 
     ai_risk_score = _get_ai_risk(data)
     with atomic():
@@ -85,11 +151,12 @@ def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
                 amount_kobo,
                 destination_account,
                 destination_bank_code,
+                destination_account_name,
                 purpose,
                 ai_risk_score,
                 status
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING
                 id,
                 cooperative_id,
@@ -97,10 +164,13 @@ def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
                 amount_kobo,
                 destination_account,
                 destination_bank_code,
+                destination_account_name,
                 purpose,
                 ai_risk_score,
                 status,
                 squad_transfer_ref,
+                last_transfer_status,
+                transfer_error_detail,
                 created_at
             """,
             [
@@ -110,6 +180,7 @@ def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
                 data["amount_kobo"],
                 data["destination_account"],
                 data["destination_bank_code"],
+                recipient_lookup["account_name"],
                 data["purpose"],
                 ai_risk_score,
                 "PARTIALLY_SIGNED",
@@ -143,10 +214,13 @@ def sign_withdrawal(withdrawal_id: str, member_id: str, role: str, actor_role: s
             amount_kobo,
             destination_account,
             destination_bank_code,
+            destination_account_name,
             purpose,
             ai_risk_score,
             status,
             squad_transfer_ref,
+            last_transfer_status,
+            transfer_error_detail,
             created_at
         FROM withdrawal_requests
         WHERE id = %s
@@ -203,25 +277,7 @@ def sign_withdrawal(withdrawal_id: str, member_id: str, role: str, actor_role: s
 
 
 def release_withdrawal(withdrawal_id: str) -> dict:
-    withdrawal = fetch_one(
-        """
-        SELECT
-            id,
-            cooperative_id,
-            requested_by,
-            amount_kobo,
-            destination_account,
-            destination_bank_code,
-            purpose,
-            ai_risk_score,
-            status,
-            squad_transfer_ref,
-            created_at
-        FROM withdrawal_requests
-        WHERE id = %s
-        """,
-        [withdrawal_id],
-    )
+    withdrawal = _fetch_withdrawal(withdrawal_id)
     if not withdrawal:
         return {"error": "Withdrawal request not found."}
 
@@ -237,15 +293,20 @@ def release_withdrawal(withdrawal_id: str) -> dict:
         account_number=withdrawal["destination_account"],
         remark=withdrawal["purpose"],
         idempotency_key=withdrawal_id,
+        account_name=withdrawal.get("destination_account_name"),
     )
 
-    new_status = "RELEASED" if squad_result.get("success") else "APPROVED"
+    new_status, transfer_status, transfer_error_detail = _map_transfer_result(squad_result)
     squad_ref = squad_result.get("data", {}).get("transaction_ref")
     with atomic():
         updated = fetch_one(
             """
             UPDATE withdrawal_requests
-            SET status = %s, squad_transfer_ref = %s
+            SET
+                status = %s,
+                squad_transfer_ref = %s,
+                last_transfer_status = %s,
+                transfer_error_detail = %s
             WHERE id = %s
             RETURNING
                 id,
@@ -254,16 +315,65 @@ def release_withdrawal(withdrawal_id: str) -> dict:
                 amount_kobo,
                 destination_account,
                 destination_bank_code,
+                destination_account_name,
                 purpose,
                 ai_risk_score,
                 status,
                 squad_transfer_ref,
+                last_transfer_status,
+                transfer_error_detail,
                 created_at
             """,
-            [new_status, squad_ref, withdrawal_id],
+            [new_status, squad_ref, transfer_status, transfer_error_detail, withdrawal_id],
         )
 
     return _serialize_withdrawal(updated, signatures=signatures)
+
+
+def get_withdrawal_detail(withdrawal_id: str) -> dict:
+    withdrawal = _fetch_withdrawal(withdrawal_id)
+    if not withdrawal:
+        return {"error": "Withdrawal request not found."}
+    return _serialize_withdrawal(withdrawal, signatures=_fetch_signatures(withdrawal_id))
+
+
+def requery_withdrawal(withdrawal_id: str) -> dict:
+    withdrawal = _fetch_withdrawal(withdrawal_id)
+    if not withdrawal:
+        return {"error": "Withdrawal request not found."}
+    if not withdrawal.get("squad_transfer_ref"):
+        return {"error": "This withdrawal has not been sent to Squad yet."}
+
+    result = requery_transfer(withdrawal["squad_transfer_ref"])
+    new_status, transfer_status, transfer_error_detail = _map_transfer_result(result)
+    with atomic():
+        updated = fetch_one(
+            """
+            UPDATE withdrawal_requests
+            SET status = %s, last_transfer_status = %s, transfer_error_detail = %s
+            WHERE id = %s
+            RETURNING
+                id,
+                cooperative_id,
+                requested_by,
+                amount_kobo,
+                destination_account,
+                destination_bank_code,
+                destination_account_name,
+                purpose,
+                ai_risk_score,
+                status,
+                squad_transfer_ref,
+                last_transfer_status,
+                transfer_error_detail,
+                created_at
+            """,
+            [new_status, transfer_status, transfer_error_detail, withdrawal_id],
+        )
+    return {
+        "withdrawal": _serialize_withdrawal(updated, signatures=_fetch_signatures(withdrawal_id)),
+        "provider_result": result,
+    }
 
 
 def list_pending_withdrawals(cooperative_id: str | None) -> list[dict]:
@@ -275,13 +385,16 @@ def list_pending_withdrawals(cooperative_id: str | None) -> list[dict]:
             amount_kobo,
             destination_account,
             destination_bank_code,
+            destination_account_name,
             purpose,
             ai_risk_score,
             status,
             squad_transfer_ref,
+            last_transfer_status,
+            transfer_error_detail,
             created_at
         FROM withdrawal_requests
-        WHERE status IN ('PENDING', 'PARTIALLY_SIGNED', 'APPROVED')
+        WHERE status IN ('PENDING', 'PARTIALLY_SIGNED', 'APPROVED', 'TRANSFER_PENDING')
     """
     params: list[str] = []
     if cooperative_id:
