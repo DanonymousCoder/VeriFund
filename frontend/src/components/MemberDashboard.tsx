@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
+import verifundLogo from '../assets/verifund-logo.png'
 
 type NavItem = {
   name: string
@@ -34,21 +35,15 @@ const contributionHistory = [
 
 function Sidebar() {
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-4">
+    <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-4">
       <div className="mb-8 flex items-center gap-2 px-2">
-        <div className="rounded bg-gray-800 p-1.5">
-          <Wallet className="h-4 w-4 text-white" />
-        </div>
+        <img src={verifundLogo} alt="VeriFund" className="h-6 w-6" />
         <span className="font-bold text-gray-900">VeriFund</span>
       </div>
 
       <div className="mb-6 flex items-center gap-3 rounded-lg bg-gray-50 p-3">
-        <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-300">
-          <img
-            src="/avatar-placeholder.jpg"
-            alt="Profile"
-            className="h-full w-full object-cover"
-          />
+        <div className="h-10 w-10 overflow-hidden rounded-full bg-blue-500 flex items-center justify-center">
+          <span className="text-xs font-bold text-white">VM</span>
         </div>
         <div>
           <p className="text-[10px] font-bold text-gray-900">VeriFund Member</p>
@@ -219,7 +214,7 @@ export function MemberDashboard() {
     <div className="flex min-h-screen bg-[#F8FAFC] text-gray-900">
       <Sidebar />
 
-      <main className="flex-1 p-8 lg:p-10">
+      <main className="flex-1 ml-64 p-8 lg:p-10">
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Member Overview</p>

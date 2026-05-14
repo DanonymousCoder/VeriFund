@@ -18,6 +18,7 @@ import PublicProfileDashboard from './components/PublicProfileDashboard'
 import MultiSigAuthorization from './components/MultiSigAuthorization'
 import RegulatoryDashboard from './components/RegulatoryDashboard'
 import heroImage from './assets/hero.png'
+import verifundLogo from './assets/verifund-logo.png'
 
 const navigationItems = [
   { label: 'Home', href: '#home' },
@@ -127,8 +128,9 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-        <Link to="/" className="text-xl font-semibold tracking-tight text-slate-950">
-          VeriFund
+        <Link to="/" className="flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-950">
+          <img src={verifundLogo} alt="VeriFund" className="h-7 w-7" />
+          <span>VeriFund</span>
         </Link>
 
         <div className="hidden items-center gap-10 md:flex">
@@ -357,7 +359,10 @@ function Footer() {
     <footer id="contact" className="bg-slate-950 px-6 py-16 text-white lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-12 border-b border-white/10 pb-12 md:grid-cols-4">
         <div className="space-y-5">
-          <h4 className="text-xl font-semibold tracking-tight">VeriFund</h4>
+          <div className="flex items-center gap-2">
+            <img src={verifundLogo} alt="VeriFund" className="h-7 w-7" />
+            <h4 className="text-xl font-semibold tracking-tight">VeriFund</h4>
+          </div>
           <p className="max-w-xs text-sm leading-7 text-slate-400">
             Pioneering transparency and security in cooperative finance through practical, maintainable product
             design.

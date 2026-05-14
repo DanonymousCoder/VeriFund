@@ -1,5 +1,6 @@
 import React from 'react'
 import { Check, ChevronDown, Hash, ShieldCheck, Info, ArrowRight, Lock } from 'lucide-react'
+import verifundLogo from '../assets/verifund-logo.png'
 
 type Step = { label: string; status: 'completed' | 'active' | 'pending' }
 
@@ -101,7 +102,8 @@ const BankLinkLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col items-center justify-center p-6">
       {/* Brand Label */}
-      <div className="mb-12">
+      <div className="mb-12 flex items-center gap-2">
+        <img src={verifundLogo} alt="VeriFund" className="h-8 w-8" />
         <span className="text-lg font-bold text-gray-900 tracking-tight">VeriFund</span>
       </div>
 

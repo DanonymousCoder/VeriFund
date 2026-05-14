@@ -1,11 +1,15 @@
 import React from 'react'
 import { Search, Bell, ShieldCheck, Share2, MapPin, Users, Hash } from 'lucide-react'
+import verifundLogo from '../assets/verifund-logo.png'
 
 export const ProfileHeader: React.FC = () => {
   return (
     <header className="bg-white border-b border-gray-100">
       <nav className="flex items-center justify-between px-8 py-4 max-w-7xl mx-auto">
-        <div className="text-xl font-bold text-gray-900">VeriFund</div>
+        <div className="flex items-center gap-2">
+          <img src={verifundLogo} alt="VeriFund" className="h-6 w-6" />
+          <span className="text-xl font-bold text-gray-900">VeriFund</span>
+        </div>
         <div className="flex items-center space-x-8">
           <div className="flex space-x-6 text-sm font-medium">
             <a href="#" className="text-blue-600 border-b-2 border-blue-600 pb-1">Trust Score</a>

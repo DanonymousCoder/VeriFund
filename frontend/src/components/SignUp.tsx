@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
 import { storageService } from '../services/storage'
+import verifundLogo from '../assets/verifund-logo.png'
 
 export function SignUp() {
   const navigate = useNavigate()
@@ -92,7 +93,8 @@ export function SignUp() {
     <div className="flex min-h-screen bg-white">
       {/* Dark Sidebar */}
       <div className="relative hidden overflow-hidden bg-[#0A1121] p-12 lg:flex lg:w-1/3 lg:flex-col lg:justify-between">
-        <div className="z-10">
+        <div className="z-10 flex items-center gap-2">
+          <img src={verifundLogo} alt="VeriFund" className="h-6 w-6" />
           <h2 className="text-xl font-bold text-white">VeriFund</h2>
         </div>
         <div className="z-10 flex items-center space-x-4">

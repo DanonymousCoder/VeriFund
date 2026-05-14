@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
 import { storageService } from '../services/storage'
 import type { AuthSession } from '../types/storage'
+import verifundLogo from '../assets/verifund-logo.png'
 
 export function Login() {
   const navigate = useNavigate()
@@ -94,7 +95,10 @@ export function Login() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#F8FAFC] p-6">
       <div className="mb-10 text-center">
-        <h1 className="mb-1 text-4xl font-bold text-gray-900">VeriFund</h1>
+        <div className="flex items-center gap-3 mb-4">
+          <img src={verifundLogo} alt="VeriFund" className="h-10 w-10" />
+          <h1 className="text-4xl font-bold text-gray-900">VeriFund</h1>
+        </div>
         <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
           Cooperative Financial Services
         </p>
