@@ -3,18 +3,24 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
 import { storageService } from '../services/storage'
-import type { AuthSession } from '../types/storage'
+import type { AuthSession, UserRole } from '../types/storage'
 import verifundLogo from '../assets/verifund-logo.png'
 
 export function Login() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [cooperativePreview, setCooperativePreview] = useState<{
+    cooperativeName: string
+    adminName: string
+    monthlyContributionAmount: number
+  } | null>(null)
 
   const [formData, setFormData] = useState({
     cooperativeCode: '',
     email: '',
     password: '',
+    role: 'member',
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,34 +51,67 @@ export function Login() {
         return
       }
 
+      const availableRoles: UserRole[] = ['member']
+      if (cooperative.adminEmail.toLowerCase() === formData.email.toLowerCase()) {
+        availableRoles.push('admin')
+      }
+      const executiveMatch = cooperative.executives.find(
+        (exec) => exec.email?.toLowerCase() === formData.email.toLowerCase(),
+      )
+      if (executiveMatch) {
+        availableRoles.push('executive')
+      }
+
+      const selectedRole = formData.role as UserRole
+      if (!availableRoles.includes(selectedRole)) {
+        alert(`This account does not have ${selectedRole} access for this cooperative.`)
+        return
+      }
+
       // Try to get saved session with matching email
       const existingProfile = await storageService.member.getProfile()
 
       if (existingProfile && existingProfile.email === formData.email && existingProfile.cooperativeId === cooperative.cooperativeCode) {
         // Valid login
+        const roleOnLogin = selectedRole
+        const onboardingComplete = roleOnLogin === 'member' ? (existingProfile.onboardingComplete ?? false) : true
         const session = {
           memberId: existingProfile.memberId,
           cooperativeId: existingProfile.cooperativeId,
           email: existingProfile.email,
           name: existingProfile.name,
+          activeRole: roleOnLogin,
+          availableRoles,
           trustScore: existingProfile.trustScore,
           verificationStatus: existingProfile.verificationStatus,
-          onboardingComplete: existingProfile.onboardingComplete ?? false,
+          onboardingComplete,
           timestamp: Date.now(),
         }
         await storageService.auth.setSession(session as AuthSession)
-        navigate((existingProfile.onboardingComplete ?? false) ? '/dashboard' : '/verify')
+        navigate(
+          roleOnLogin === 'admin'
+            ? '/admin/overview'
+            : roleOnLogin === 'executive'
+              ? '/executive/inbox'
+              : onboardingComplete
+                ? '/dashboard'
+                : '/verify',
+        )
       } else {
         // New member under a valid cooperative
         const memberId = `MEM-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+        const roleOnLogin = selectedRole
+        const onboardingComplete = roleOnLogin !== 'member'
         const session = {
           memberId,
           cooperativeId: cooperative.cooperativeCode,
           email: formData.email,
-          name: 'Demo Member',
+          name: roleOnLogin === 'admin' ? cooperative.adminName : 'Demo Member',
+          activeRole: roleOnLogin,
+          availableRoles,
           trustScore: 75,
-          verificationStatus: 'pending',
-          onboardingComplete: false,
+          verificationStatus: onboardingComplete ? 'verified' : 'pending',
+          onboardingComplete,
           timestamp: Date.now(),
         }
         await storageService.auth.setSession(session as AuthSession)
@@ -86,14 +125,22 @@ export function Login() {
           cooperativeCode: cooperative.cooperativeCode,
           cooperativeName: cooperative.cooperativeName,
           virtualAccountNumber: cooperative.virtualAccountNumber,
+          role: roleOnLogin,
           savingsBalance: 1250000,
           contributions: 24,
           trustScore: 75,
-          verificationStatus: 'pending',
-          onboardingComplete: false,
+          verificationStatus: onboardingComplete ? 'verified' : 'pending',
+          termsAccepted: onboardingComplete,
+          onboardingComplete,
         })
 
-        navigate('/verify')
+        navigate(
+          roleOnLogin === 'admin'
+            ? '/admin/overview'
+            : roleOnLogin === 'executive'
+              ? '/executive/inbox'
+              : '/verify',
+        )
       }
     } catch (error) {
       console.error('Login failed:', error)
@@ -124,8 +171,34 @@ export function Login() {
             icon={Building2}
             placeholder="e.g. VF-ABCD-1234"
             value={formData.cooperativeCode}
-            onChange={handleChange}
+            onChange={async (e) => {
+              handleChange(e)
+              const code = e.target.value.trim()
+              if (code.length < 6) {
+                setCooperativePreview(null)
+                return
+              }
+
+              const cooperative = await storageService.cooperative.findByCode(code)
+              if (!cooperative) {
+                setCooperativePreview(null)
+                return
+              }
+
+              setCooperativePreview({
+                cooperativeName: cooperative.cooperativeName,
+                adminName: cooperative.adminName,
+                monthlyContributionAmount: cooperative.monthlyContributionAmount,
+              })
+            }}
           />
+          {cooperativePreview ? (
+            <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+              <p className="font-bold">{cooperativePreview.cooperativeName}</p>
+              <p>Admin: {cooperativePreview.adminName}</p>
+              <p>Monthly Contribution: NGN {cooperativePreview.monthlyContributionAmount.toLocaleString()}</p>
+            </div>
+          ) : null}
           <AuthInput
             label="Member Email"
             icon={Mail}
@@ -133,6 +206,19 @@ export function Login() {
             value={formData.email}
             onChange={handleChange}
           />
+
+          <div className="mb-5">
+            <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-500">Access as</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
+              className="w-full rounded-md border border-gray-200 px-3 py-3 text-sm text-gray-700"
+            >
+              <option value="member">Member</option>
+              <option value="admin">Cooperative Admin</option>
+              <option value="executive">Executive / Co-signer</option>
+            </select>
+          </div>
 
           <div className="relative">
             <AuthInput

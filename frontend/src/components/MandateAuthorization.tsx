@@ -78,6 +78,7 @@ const MandateAuthorization: React.FC = () => {
       await storageService.member.setProfile({
         ...profile,
         verificationStatus: 'verified',
+        termsAccepted: true,
         onboardingComplete: true,
       })
     }

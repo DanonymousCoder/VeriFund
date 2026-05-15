@@ -1,16 +1,25 @@
 import {
   AlertTriangle,
+  Bell,
+  BookText,
   CheckSquare,
   HelpCircle,
   LayoutDashboard,
+  MessageSquareWarning,
   Plus,
   Settings,
   ShieldCheck,
+  Smartphone,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import verifundLogo from '../assets/verifund-logo.png'
+import { useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { useMemberProfile } from '../hooks/useMemberData'
+import { storageService } from '../services/storage'
+import type { UserRole } from '../types/storage'
 
 type NavItem = {
   name: string
@@ -18,13 +27,26 @@ type NavItem = {
   to: string
 }
 
-const navItems: NavItem[] = [
-  { name: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
-  { name: 'Trust Score', icon: ShieldCheck, to: '/profile' },
-  { name: 'Withdrawals', icon: Wallet, to: '/authorize' },
-  { name: 'Fraud Alerts', icon: AlertTriangle, to: '/regulatory' },
-  { name: 'Verification', icon: CheckSquare, to: '/verify' },
-]
+const navByRole: Record<UserRole, NavItem[]> = {
+  member: [
+    { name: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
+    { name: 'Trust Score', icon: ShieldCheck, to: '/profile' },
+    { name: 'Withdrawals', icon: Wallet, to: '/authorize' },
+    { name: 'Fraud Alerts', icon: AlertTriangle, to: '/regulatory' },
+  ],
+  admin: [
+    { name: 'Admin Overview', icon: LayoutDashboard, to: '/admin/overview' },
+    { name: 'Withdrawal Queue', icon: Wallet, to: '/authorize' },
+    { name: 'Fraud Center', icon: AlertTriangle, to: '/regulatory' },
+    { name: 'Trust Score', icon: ShieldCheck, to: '/profile' },
+  ],
+  executive: [
+    { name: 'Executive Desk', icon: LayoutDashboard, to: '/executive/inbox' },
+    { name: 'Co-sign Requests', icon: Wallet, to: '/authorize' },
+    { name: 'Fraud Alerts', icon: AlertTriangle, to: '/regulatory' },
+    { name: 'Trust Score', icon: ShieldCheck, to: '/profile' },
+  ],
+}
 
 const contributionHistory = [
   { date: 'Sep 15, 2023', amount: '₦25,000', status: 'Confirmed', ref: 'SQD-8821' },
@@ -33,7 +55,9 @@ const contributionHistory = [
   { date: 'Jun 15, 2023', amount: '₦25,000', status: 'Confirmed', ref: 'SQD-8821' },
 ] as const
 
-function Sidebar() {
+function Sidebar({ role, cooperativeCode }: { role: UserRole; cooperativeCode: string }) {
+  const navItems = navByRole[role]
+
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-gray-100 bg-white p-4">
       <div className="mb-8 flex items-center gap-2 px-2">
@@ -46,8 +70,8 @@ function Sidebar() {
           <span className="text-xs font-bold text-white">VM</span>
         </div>
         <div>
-          <p className="text-[10px] font-bold text-gray-900">VeriFund Member</p>
-          <p className="font-mono text-[10px] text-gray-500">VF-90210</p>
+          <p className="text-[10px] font-bold text-gray-900">{role === 'admin' ? 'Cooperative Admin' : role === 'executive' ? 'Executive Co-signer' : 'VeriFund Member'}</p>
+          <p className="font-mono text-[10px] text-gray-500">{cooperativeCode}</p>
         </div>
       </div>
 
@@ -74,7 +98,7 @@ function Sidebar() {
           to="/authorize"
           className="flex w-full items-center justify-center gap-2 rounded-md bg-[#005AD2] py-2 text-[10px] font-bold text-white"
         >
-          <Plus size={14} /> New Withdrawal
+          <Plus size={14} /> {role === 'executive' ? 'Review Request' : 'New Withdrawal'}
         </Link>
         <div className="space-y-1">
           <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-xs text-gray-500">
@@ -210,17 +234,37 @@ function StatCard({ title, value }: { title: string; value: string }) {
 }
 
 export function MemberDashboard() {
+  const { session } = useAuth()
+  const { profile } = useMemberProfile()
+  const [fraudNote, setFraudNote] = useState('')
+  const role = (session?.activeRole ?? 'member') as UserRole
+
+  const submitAnonymousFraudReport = async () => {
+    if (!session || !profile || !fraudNote.trim()) return
+    await storageService.fraudReports.create({
+      id: `FR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      cooperativeCode: profile.cooperativeCode ?? profile.cooperativeId,
+      submittedBy: session.email,
+      anonymous: true,
+      category: 'fraud',
+      details: fraudNote.trim(),
+      createdAt: Date.now(),
+    })
+    setFraudNote('')
+    alert('Anonymous fraud report submitted.')
+  }
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] text-gray-900">
-      <Sidebar />
+      <Sidebar role={role} cooperativeCode={profile?.cooperativeCode ?? profile?.cooperativeId ?? 'VF-COOP'} />
 
       <main className="flex-1 ml-64 p-8 lg:p-10">
         <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Member Overview</p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{role} Overview</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">{role === 'admin' ? 'Cooperative Dashboard' : role === 'executive' ? 'Executive Dashboard' : 'Member Dashboard'}</h1>
           </div>
-          <p className="text-sm text-gray-500">Welcome back, trusted member.</p>
+          <p className="text-sm text-gray-500">{profile?.cooperativeName ?? 'Cooperative'} · Welcome back.</p>
         </div>
 
         <DashboardHeader />
@@ -242,22 +286,68 @@ export function MemberDashboard() {
                   type="button"
                   className="flex w-full items-center justify-between rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-700 transition hover:bg-gray-50"
                 >
-                  Request withdrawal <Plus size={14} className="text-gray-400" />
+                  {role === 'executive' ? 'Co-sign withdrawal request' : 'Request withdrawal'} <Plus size={14} className="text-gray-400" />
                 </button>
                 <button
                   type="button"
                   className="flex w-full items-center justify-between rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-700 transition hover:bg-gray-50"
                 >
-                  View trust report <ShieldCheck size={14} className="text-gray-400" />
+                  {role === 'admin' ? 'Generate monthly report' : 'View trust report'} <ShieldCheck size={14} className="text-gray-400" />
                 </button>
                 <button
                   type="button"
                   className="flex w-full items-center justify-between rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-700 transition hover:bg-gray-50"
                 >
-                  Support center <HelpCircle size={14} className="text-gray-400" />
+                  {role === 'admin' ? 'Review fraud alerts' : 'Support center'} <HelpCircle size={14} className="text-gray-400" />
                 </button>
               </div>
             </section>
+
+            {role === 'member' ? (
+              <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-gray-700">Member Services</h2>
+                <div className="mt-4 space-y-3 text-sm text-gray-600">
+                  <div className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
+                    <span className="flex items-center gap-2"><Bell size={14} className="text-gray-400" /> SMS debit confirmations</span>
+                    <span className="rounded bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600">Enabled</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
+                    <span className="flex items-center gap-2"><Smartphone size={14} className="text-gray-400" /> USSD access</span>
+                    <span className="rounded bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-600">*347*90#</span>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-gray-700">Anonymous Fraud Report</h2>
+              <textarea
+                value={fraudNote}
+                onChange={(e) => setFraudNote(e.target.value)}
+                rows={3}
+                placeholder="Describe suspicious activity. Your identity will not be attached."
+                className="mt-4 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+              />
+              <button
+                type="button"
+                onClick={submitAnonymousFraudReport}
+                className="mt-3 inline-flex items-center gap-2 rounded-md bg-rose-50 px-4 py-2 text-xs font-bold uppercase tracking-widest text-rose-600"
+              >
+                <MessageSquareWarning size={14} /> Submit Report
+              </button>
+            </section>
+
+            {role !== 'member' ? (
+              <section className="rounded-xl border border-amber-100 bg-amber-50 p-6 shadow-sm">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-amber-800">Governance Rules</h2>
+                <ul className="mt-3 space-y-2 text-xs text-amber-900">
+                  <li className="flex items-start gap-2"><BookText size={13} className="mt-0.5" /> No fund movement without 2 executive signatures.</li>
+                  <li className="flex items-start gap-2"><BookText size={13} className="mt-0.5" /> Admin cannot view or edit raw BVN data.</li>
+                  <li className="flex items-start gap-2"><BookText size={13} className="mt-0.5" /> No self-approval for loans or withdrawal requests.</li>
+                  <li className="flex items-start gap-2"><BookText size={13} className="mt-0.5" /> AI-blocked withdrawals cannot be overridden unilaterally.</li>
+                </ul>
+              </section>
+            ) : null}
 
             <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
               <h2 className="text-xs font-bold uppercase tracking-widest text-gray-700">Trust Insights</h2>

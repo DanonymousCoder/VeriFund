@@ -1,14 +1,17 @@
 import { Building2, Mail, Phone, User, Eye, Lock } from 'lucide-react'
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
 import { storageService } from '../services/storage'
 import verifundLogo from '../assets/verifund-logo.png'
+import type { CooperativeRecord } from '../types/storage'
 
 export function SignUp() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [cooperativeInfo, setCooperativeInfo] = useState<CooperativeRecord | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -18,6 +21,38 @@ export function SignUp() {
     password: '',
   })
 
+  useEffect(() => {
+    const inviteCode = searchParams.get('invite')
+    if (!inviteCode) return
+
+    const loadInviteCooperative = async () => {
+      const allCooperatives = await storageService.cooperative.getAll()
+      const matched = allCooperatives.find((coop) => coop.inviteCode.toUpperCase() === inviteCode.toUpperCase())
+      if (matched) {
+        setFormData((prev) => ({ ...prev, cooperativeCode: matched.cooperativeCode }))
+        setCooperativeInfo(matched)
+      }
+    }
+
+    loadInviteCooperative()
+  }, [searchParams])
+
+  const resolveCooperativeInput = async (value: string) => {
+    const input = value.trim()
+    if (!input) return null
+
+    const inviteFromUrl = input.includes('invite=')
+      ? input.split('invite=')[1]?.split('&')[0]
+      : null
+    const token = (inviteFromUrl ?? input).toUpperCase()
+
+    const all = await storageService.cooperative.getAll()
+    if (token.startsWith('INV-')) {
+      return all.find((coop) => coop.inviteCode.toUpperCase() === token) ?? null
+    }
+    return all.find((coop) => coop.cooperativeCode.toUpperCase() === token) ?? null
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { placeholder, value } = e.target
     const fieldMap: Record<string, keyof typeof formData> = {
@@ -25,6 +60,7 @@ export function SignUp() {
       'jane.doe@example.com': 'email',
       '+1 (555) 000-0000': 'phone',
       'e.g. VF-ABCD-1234': 'cooperativeCode',
+      'e.g. INV-12ABCD or VF-ABCD-1234': 'cooperativeCode',
     }
     const field = fieldMap[placeholder]
     if (field) {
@@ -41,9 +77,9 @@ export function SignUp() {
 
     setLoading(true)
     try {
-      const cooperative = await storageService.cooperative.findByCode(formData.cooperativeCode)
+      const cooperative = await resolveCooperativeInput(formData.cooperativeCode)
       if (!cooperative) {
-        alert('Invalid cooperative code. Ask your admin for the registered cooperative code.')
+        alert('Invalid invite/cooperative code. Ask your admin for a valid invite link or code.')
         return
       }
 
@@ -56,6 +92,8 @@ export function SignUp() {
         cooperativeId,
         email: formData.email,
         name: formData.name,
+        activeRole: 'member',
+        availableRoles: ['member'],
         trustScore: 75,
         verificationStatus: 'pending',
         onboardingComplete: false,
@@ -71,10 +109,12 @@ export function SignUp() {
         cooperativeCode: cooperative.cooperativeCode,
         cooperativeName: cooperative.cooperativeName,
         virtualAccountNumber: cooperative.virtualAccountNumber,
+        role: 'member',
         savingsBalance: 0,
         contributions: 0,
         trustScore: 75,
         verificationStatus: 'pending',
+        termsAccepted: false,
         onboardingComplete: false,
       })
 
@@ -138,12 +178,30 @@ export function SignUp() {
               onChange={handleChange}
             />
             <AuthInput
-              label="Cooperative Code"
+              label="Invite Link / Code"
               icon={Building2}
-              placeholder="e.g. VF-ABCD-1234"
+              placeholder="e.g. INV-12ABCD or VF-ABCD-1234"
               value={formData.cooperativeCode}
-              onChange={handleChange}
+              onChange={async (e) => {
+                handleChange(e)
+                const code = e.target.value.trim()
+                if (code.length < 6) {
+                  setCooperativeInfo(null)
+                  return
+                }
+                const cooperative = await resolveCooperativeInput(code)
+                setCooperativeInfo(cooperative)
+              }}
             />
+
+            {cooperativeInfo ? (
+              <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+                <p className="font-bold">Joining: {cooperativeInfo.cooperativeName}</p>
+                <p>Admin: {cooperativeInfo.adminName}</p>
+                <p>Monthly Contribution: NGN {cooperativeInfo.monthlyContributionAmount.toLocaleString()}</p>
+                <p>Debit Day: {cooperativeInfo.debitDayOfMonth}</p>
+              </div>
+            ) : null}
 
             <div className="relative">
               <AuthInput
@@ -186,6 +244,12 @@ export function SignUp() {
               .
             </p>
             <p className="mt-6 text-sm text-gray-600">
+              Want to create a cooperative instead?{' '}
+              <Link to="/admin/register" className="font-bold text-blue-600">
+                Register as admin
+              </Link>
+            </p>
+            <p className="mt-3 text-sm text-gray-600">
               Already have an account?{' '}
               <Link to="/login" className="font-bold text-blue-600">
                 Sign in

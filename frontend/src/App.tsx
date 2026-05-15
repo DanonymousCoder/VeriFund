@@ -21,6 +21,8 @@ import MultiSigAuthorization from './components/MultiSigAuthorization'
 import RegulatoryDashboard from './components/RegulatoryDashboard'
 import MandateAuthorization from './components/MandateAuthorization'
 import AdminRegisterCooperative from './components/AdminRegisterCooperative'
+import AdminOverview from './components/AdminOverview'
+import ExecutiveInbox from './components/ExecutiveInbox'
 import heroImage from './assets/hero.png'
 import verifundLogo from './assets/verifund-logo.png'
 
@@ -116,6 +118,22 @@ function App() {
       <Route path="/verify/account" element={<BankLinkLayout />} />
       <Route path="/verify/authorize" element={<MandateAuthorization />} />
       <Route path="/admin/register" element={<AdminRegisterCooperative />} />
+      <Route
+        path="/admin/overview"
+        element={
+          <ProtectedRoute requireOnboarding>
+            <AdminOverview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/executive/inbox"
+        element={
+          <ProtectedRoute requireOnboarding>
+            <ExecutiveInbox />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/profile"
         element={

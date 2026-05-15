@@ -19,13 +19,22 @@
  * ```
  */
 
-import type { AuthSession, MemberProfile, DashboardData, CooperativeRecord } from '../types/storage'
+import type {
+  AuthSession,
+  MemberProfile,
+  DashboardData,
+  CooperativeRecord,
+  WithdrawalRequest,
+  FraudReport,
+} from '../types/storage'
 
 const STORAGE_KEYS = {
   AUTH: 'vf_auth_session',
   MEMBER_PROFILE: 'vf_member_profile',
   DASHBOARD_DATA: 'vf_dashboard_data',
   COOPERATIVES: 'vf_registered_cooperatives',
+  WITHDRAWALS: 'vf_withdrawal_requests',
+  FRAUD_REPORTS: 'vf_fraud_reports',
 } as const
 
 /**
@@ -41,6 +50,10 @@ interface StorageDriver {
   setDashboardData(data: DashboardData | null): Promise<void>
   getCooperatives(): Promise<CooperativeRecord[]>
   setCooperatives(cooperatives: CooperativeRecord[]): Promise<void>
+  getWithdrawals(): Promise<WithdrawalRequest[]>
+  setWithdrawals(withdrawals: WithdrawalRequest[]): Promise<void>
+  getFraudReports(): Promise<FraudReport[]>
+  setFraudReports(reports: FraudReport[]): Promise<void>
   clearAll(): Promise<void>
 }
 
@@ -135,6 +148,42 @@ class LocalStorageDriver implements StorageDriver {
     }
   }
 
+  async getWithdrawals(): Promise<WithdrawalRequest[]> {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.WITHDRAWALS)
+      return data ? JSON.parse(data) : []
+    } catch {
+      console.error('Failed to retrieve withdrawals from storage')
+      return []
+    }
+  }
+
+  async setWithdrawals(withdrawals: WithdrawalRequest[]): Promise<void> {
+    try {
+      localStorage.setItem(STORAGE_KEYS.WITHDRAWALS, JSON.stringify(withdrawals))
+    } catch {
+      console.error('Failed to save withdrawals to storage')
+    }
+  }
+
+  async getFraudReports(): Promise<FraudReport[]> {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.FRAUD_REPORTS)
+      return data ? JSON.parse(data) : []
+    } catch {
+      console.error('Failed to retrieve fraud reports from storage')
+      return []
+    }
+  }
+
+  async setFraudReports(reports: FraudReport[]): Promise<void> {
+    try {
+      localStorage.setItem(STORAGE_KEYS.FRAUD_REPORTS, JSON.stringify(reports))
+    } catch {
+      console.error('Failed to save fraud reports to storage')
+    }
+  }
+
   async clearAll(): Promise<void> {
     try {
       Object.values(STORAGE_KEYS).forEach((key) => {
@@ -185,6 +234,30 @@ export const storageService = {
     findByCode: async (cooperativeCode: string) => {
       const cooperatives = await storageDriver.getCooperatives()
       return cooperatives.find((item) => item.cooperativeCode.toUpperCase() === cooperativeCode.toUpperCase()) ?? null
+    },
+  },
+  withdrawals: {
+    getAll: () => storageDriver.getWithdrawals(),
+    create: async (request: WithdrawalRequest) => {
+      const requests = await storageDriver.getWithdrawals()
+      await storageDriver.setWithdrawals([request, ...requests])
+      return request
+    },
+    update: async (requestId: string, updater: (request: WithdrawalRequest) => WithdrawalRequest) => {
+      const requests = await storageDriver.getWithdrawals()
+      const updated = requests.map((request) =>
+        request.id === requestId ? updater(request) : request,
+      )
+      await storageDriver.setWithdrawals(updated)
+      return updated.find((request) => request.id === requestId) ?? null
+    },
+  },
+  fraudReports: {
+    getAll: () => storageDriver.getFraudReports(),
+    create: async (report: FraudReport) => {
+      const reports = await storageDriver.getFraudReports()
+      await storageDriver.setFraudReports([report, ...reports])
+      return report
     },
   },
   clear: () => storageDriver.clearAll(),
