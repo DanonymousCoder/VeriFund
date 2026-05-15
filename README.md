@@ -144,20 +144,7 @@ The current backend already has working endpoints for:
 What is not built out yet is mostly breadth, not core flow:
 
 - no advanced admin CRUD screens yet
-- no pagination/filter params on most list endpoints yet
+-- no pagination/filter params on most list endpoints yet
 - no email/push notification service yet
 
-## AI Integration Verification
-
-You can verify the AI service integration and external API connectivity using the integration script:
-
-```bash
-python scripts/verify_ai_integration.py
-```
-
-This script validates:
-- **Anomaly Detection Connectivity**: Verifies the heuristic scoring engine and the real-time currency conversion API.
-- **Triage Service Analysis**: Tests the NLP triage engine for whistleblower reports.
-- **Production AI Readiness**: Checks for the presence of production-grade model endpoints.
-
-See `AI_INTEGRATION_AND_HOSTING.md` for full technical documentation.
+See `FRONTEND_ROUTES.md` for the exact contract the frontend should integrate against.

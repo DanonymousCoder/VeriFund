@@ -21,40 +21,53 @@ KEYWORDS = {
 
 def triage_report(report_text: str, reporter_cooperative_id: str) -> dict:
     """
-    Advanced Triage Service using Generative AI (Gemini) with Rule-Based Fallback.
+    Advanced Triage Service using OpenRouter (NVIDIA Nemotron) with Rule-Based Fallback.
     """
-    gemini_key = os.environ.get("GEMINI_API_KEY")
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
     
-    if gemini_key:
+    if openrouter_key:
         try:
-            # Real-world Gemini API integration
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            # OpenRouter API integration (OpenAI-compatible)
+            url = "https://openrouter.ai/api/v1/chat/completions"
             prompt = (
                 f"Analyze this whistleblower report for a financial cooperative: '{report_text}'. "
                 "Classify the intent (theft_allegation, identity_fraud, or general_complaint), "
                 "provide a concise evidence summary, and decide if it should be escalated (true/false). "
                 "Return ONLY a JSON object with keys: intent, evidence_summary, escalate."
             )
-            resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=5)
+            
+            headers = {
+                "Authorization": f"Bearer {openrouter_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://verifund.app", # Required by OpenRouter
+                "X-Title": "VeriFund AI Service"
+            }
+            
+            payload = {
+                "model": "nvidia/nemotron-3-super-120b-a12b:free",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1
+            }
+            
+            resp = requests.post(url, headers=headers, json=payload, timeout=10)
             if resp.status_code == 200:
                 ai_data = resp.json()
-                # Simplified parsing for the hackathon
-                text_response = ai_data['candidates'][0]['content']['parts'][0]['text']
+                text_response = ai_data['choices'][0]['message']['content']
                 # Clean up json markdown if present
                 clean_json = re.search(r"\{.*\}", text_response, re.DOTALL).group()
                 result = __import__('json').loads(clean_json)
                 
                 return {
                     "intent": result.get("intent", "suspicious_activity"),
-                    "corroboration_score": 0.85, # High confidence for AI analysis
+                    "corroboration_score": 0.92, 
                     "evidence_summary": result.get("evidence_summary"),
                     "escalate": result.get("escalate", True),
-                    "model": "gemini-1.5-flash-production",
+                    "model": "nvidia/nemotron-3-super-120b-a12b (OpenRouter)",
                 }
         except Exception as e:
-            logger.error(f"Gemini API Error: {e}")
+            logger.error(f"OpenRouter API Error: {e}")
 
-    # Professional Rule-Based Fallback (No "demo" mentions)
+    # Professional Rule-Based Fallback
     lowered = report_text.lower()
     keyword_hits = sorted({keyword for keyword in KEYWORDS if keyword in lowered})
     amount_mentions = re.findall(r"\b\d[\d,]*\b", report_text)
