@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: verifund
+      POSTGRES_PASSWORD: verifund_secret
+      POSTGRES_DB: verifund
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: ./.env
+    depends_on:
+      - postgres
+      - redis
+
+  member-service:
+    build:
+      context: .
+      dockerfile: member-service/Dockerfile
+    ports:
+      - "8001:8001"
+    env_file: ./.env
+    depends_on:
+      - postgres
+
+  cooperative-service:
+    build:
+      context: .
+      dockerfile: cooperative-service/Dockerfile
+    ports:
+      - "8002:8002"
+    env_file: ./.env
+    depends_on:
+      - postgres
+
+  contribution-service:
+    build:
+      context: .
+      dockerfile: contribution-service/Dockerfile
+    ports:
+      - "8003:8003"
+    env_file: ./.env
+    depends_on:
+      - postgres
+      - redis
+
+  withdrawal-service:
+    build:
+      context: .
+      dockerfile: withdrawal-service/Dockerfile
+    ports:
+      - "8004:8004"
+    env_file: ./.env
+    depends_on:
+      - postgres
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
+    ports:
+      - "8005:8005"
+    env_file: ./.env
+    depends_on:
+      - postgres
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    ports:
+      - "8006:8006"
+    env_file: ./.env
+    depends_on:
+      - redis
+
+volumes:
+  pgdata:

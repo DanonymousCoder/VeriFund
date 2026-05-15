@@ -1,0 +1,32 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "sync"
+  recursive_type_depth = 5
+}
+
+model Cooperative {
+  id                       String          @id @default(uuid())
+  name                     String
+  registrationNumber       String          @unique @map("registration_number")
+  state                    String
+  cooperativeType          CooperativeType @map("cooperative_type")
+  squadVirtualAccountNumber String?        @map("squad_virtual_account_number")
+  squadCustomerId          String?         @map("squad_customer_id")
+  healthScore              Int             @default(50) @map("health_score")
+  healthScoreUpdatedAt     DateTime?       @map("health_score_updated_at")
+  isActive                 Boolean         @default(true) @map("is_active")
+  createdAt                DateTime        @default(now()) @map("created_at")
+
+  @@map("cooperatives")
+}
+
+enum CooperativeType {
+  THRIFT
+  CREDIT
+  MULTIPURPOSE
+}

@@ -1,0 +1,9 @@
+.git
+.env
+**/.env
+__pycache__/
+*.pyc
+*.log
+*.err.log
+*.out.log
+tests/logs/
