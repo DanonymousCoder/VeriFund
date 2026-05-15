@@ -753,6 +753,8 @@ def record_contribution(webhook_data: dict) -> dict:
 
     last_contributed_at = history.get("last_contributed_at")
     if last_contributed_at:
+        if getattr(last_contributed_at, "tzinfo", None) is None:
+            last_contributed_at = last_contributed_at.replace(tzinfo=timezone.utc)
         delta = datetime.now(timezone.utc) - last_contributed_at
         days_since_last = max(delta.days, 0)
     else:

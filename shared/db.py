@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from typing import Any, Iterable
 
-from django.db import connection, transaction
+from django.db import close_old_connections, connection, transaction
 
 
 def _row_to_dict(columns: list[str], row: Iterable[Any]) -> dict[str, Any]:
@@ -9,6 +9,7 @@ def _row_to_dict(columns: list[str], row: Iterable[Any]) -> dict[str, Any]:
 
 
 def fetch_one(query: str, params: Iterable[Any] | None = None) -> dict[str, Any] | None:
+    close_old_connections()
     with connection.cursor() as cursor:
         cursor.execute(query, params or [])
         row = cursor.fetchone()
@@ -19,6 +20,7 @@ def fetch_one(query: str, params: Iterable[Any] | None = None) -> dict[str, Any]
 
 
 def fetch_all(query: str, params: Iterable[Any] | None = None) -> list[dict[str, Any]]:
+    close_old_connections()
     with connection.cursor() as cursor:
         cursor.execute(query, params or [])
         rows = cursor.fetchall()
@@ -27,6 +29,7 @@ def fetch_all(query: str, params: Iterable[Any] | None = None) -> list[dict[str,
 
 
 def execute(query: str, params: Iterable[Any] | None = None) -> None:
+    close_old_connections()
     with connection.cursor() as cursor:
         cursor.execute(query, params or [])
 

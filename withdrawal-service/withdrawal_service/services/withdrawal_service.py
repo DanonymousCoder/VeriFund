@@ -2,6 +2,8 @@ import os
 import uuid
 
 import httpx
+from django.db import connection
+from django.db.utils import InterfaceError, OperationalError
 
 from shared.db import atomic, fetch_all, fetch_one
 from shared.squad.client import initiate_transfer, lookup_account_name, requery_transfer
@@ -124,24 +126,19 @@ def _map_transfer_result(result: dict) -> tuple[str, str | None, str | None]:
     return "APPROVED", raw_status or "Failed", result.get("message")
 
 
-def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
-    if role not in {"TREASURER", "ADMIN"}:
-        return {"error": "Only a treasurer or admin can initiate a withdrawal."}
-
-    cooperative = fetch_one("SELECT id, name FROM cooperatives WHERE id = %s", [data["cooperative_id"]])
-    if not cooperative:
-        return {"error": "Cooperative not found."}
-
-    recipient_lookup = lookup_recipient(
-        bank_code=data["destination_bank_code"],
-        account_number=data["destination_account"],
-    )
-    if "error" in recipient_lookup or not recipient_lookup.get("account_name"):
-        return {"error": recipient_lookup.get("error", "Destination account lookup failed.")}
-
-    ai_risk_score = _get_ai_risk(data)
+def _create_withdrawal_request(
+    *,
+    withdrawal_id: str,
+    cooperative_id: str,
+    member_id: str,
+    amount_kobo: int,
+    destination_account: str,
+    destination_bank_code: str,
+    destination_account_name: str,
+    purpose: str,
+    ai_risk_score: float,
+) -> dict:
     with atomic():
-        withdrawal_id = str(uuid.uuid4())
         withdrawal = fetch_one(
             """
             INSERT INTO withdrawal_requests (
@@ -175,13 +172,13 @@ def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
             """,
             [
                 withdrawal_id,
-                data["cooperative_id"],
+                cooperative_id,
                 member_id,
-                data["amount_kobo"],
-                data["destination_account"],
-                data["destination_bank_code"],
-                recipient_lookup["account_name"],
-                data["purpose"],
+                amount_kobo,
+                destination_account,
+                destination_bank_code,
+                destination_account_name,
+                purpose,
                 ai_risk_score,
                 "PARTIALLY_SIGNED",
             ],
@@ -193,6 +190,53 @@ def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
             RETURNING id
             """,
             [str(uuid.uuid4()), withdrawal["id"], member_id, "TREASURER"],
+        )
+    return withdrawal
+
+
+def request_withdrawal(member_id: str, role: str | None, data: dict) -> dict:
+    if role not in {"TREASURER", "ADMIN"}:
+        return {"error": "Only a treasurer or admin can initiate a withdrawal."}
+
+    cooperative = fetch_one("SELECT id, name FROM cooperatives WHERE id = %s", [data["cooperative_id"]])
+    if not cooperative:
+        return {"error": "Cooperative not found."}
+
+    recipient_lookup = lookup_recipient(
+        bank_code=data["destination_bank_code"],
+        account_number=data["destination_account"],
+    )
+    if "error" in recipient_lookup or not recipient_lookup.get("account_name"):
+        return {"error": recipient_lookup.get("error", "Destination account lookup failed.")}
+
+    ai_risk_score = _get_ai_risk(data)
+    withdrawal_id = str(uuid.uuid4())
+    try:
+        withdrawal = _create_withdrawal_request(
+            withdrawal_id=withdrawal_id,
+            cooperative_id=data["cooperative_id"],
+            member_id=member_id,
+            amount_kobo=data["amount_kobo"],
+            destination_account=data["destination_account"],
+            destination_bank_code=data["destination_bank_code"],
+            destination_account_name=recipient_lookup["account_name"],
+            purpose=data["purpose"],
+            ai_risk_score=ai_risk_score,
+        )
+    except (OperationalError, InterfaceError):
+        # Free-tier Postgres providers can drop pooled connections between the
+        # account lookup and the insert. Close the stale handle and retry once.
+        connection.close()
+        withdrawal = _create_withdrawal_request(
+            withdrawal_id=withdrawal_id,
+            cooperative_id=data["cooperative_id"],
+            member_id=member_id,
+            amount_kobo=data["amount_kobo"],
+            destination_account=data["destination_account"],
+            destination_bank_code=data["destination_bank_code"],
+            destination_account_name=recipient_lookup["account_name"],
+            purpose=data["purpose"],
+            ai_risk_score=ai_risk_score,
         )
 
     signatures = _fetch_signatures(withdrawal["id"])
