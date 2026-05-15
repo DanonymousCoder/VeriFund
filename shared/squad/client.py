@@ -302,7 +302,6 @@ def simulate_virtual_account_payment(
     payload = {
         "amount": str(int(amount_kobo)),
         "virtual_account_number": virtual_account_number,
-        "customer_identifier": customer_identifier,
     }
     if SQUAD_SECRET_KEY and not SQUAD_MOCK_MODE:
         return _request("POST", "/virtual-account/simulate/payment", payload)
