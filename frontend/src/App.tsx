@@ -14,9 +14,11 @@ import {
 } from 'lucide-react'
 import { Login, MemberDashboard, SignUp } from './components'
 import IdentityVerification from './components/IdentityVerification'
+import BankLinkLayout from './components/BankLinkLayout'
 import PublicProfileDashboard from './components/PublicProfileDashboard'
 import MultiSigAuthorization from './components/MultiSigAuthorization'
 import RegulatoryDashboard from './components/RegulatoryDashboard'
+import MandateAuthorization from './components/MandateAuthorization'
 import heroImage from './assets/hero.png'
 import verifundLogo from './assets/verifund-logo.png'
 
@@ -102,6 +104,8 @@ function App() {
       <Route path="/signup" element={<SignUp />} />
       <Route path="/dashboard" element={<MemberDashboard />} />
       <Route path="/verify" element={<IdentityVerification />} />
+      <Route path="/verify/account" element={<BankLinkLayout />} />
+      <Route path="/verify/authorize" element={<MandateAuthorization />} />
       <Route path="/profile" element={<PublicProfileDashboard />} />
       <Route path="/authorize" element={<MultiSigAuthorization />} />
       <Route path="/regulatory" element={<RegulatoryDashboard />} />
@@ -161,10 +165,10 @@ function Navbar() {
             <ShieldCheck className="h-4 w-4" />
           </button>
           <Link
-            to="/login"
+            to="/signup"
             className="inline-flex items-center justify-center rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
           >
-            Login
+            Signup
           </Link>
         </div>
       </nav>

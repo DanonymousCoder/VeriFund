@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { Check, ChevronDown, Hash, ShieldCheck, Info, ArrowRight, Lock } from 'lucide-react'
 import verifundLogo from '../assets/verifund-logo.png'
 
@@ -90,9 +91,12 @@ const BankAccountForm: React.FC = () => {
 
       {/* Footer Action Area */}
       <div className="bg-[#E5EFFF] p-6 border-t border-gray-100">
-        <button className="w-full bg-[#CADFFF] text-[#8EA9D1] py-3.5 rounded-md font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+        <Link
+          to="/verify/authorize"
+          className="w-full bg-[#005AD2] text-white py-3.5 rounded-md font-bold text-xs flex items-center justify-center gap-2 transition-colors hover:bg-blue-700"
+        >
           Proceed to Authorize <ArrowRight size={16} />
-        </button>
+        </Link>
       </div>
     </div>
   )

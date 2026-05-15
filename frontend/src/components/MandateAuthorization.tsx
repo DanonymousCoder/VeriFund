@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Check, Landmark, BadgeCheck, Lock, Shield } from 'lucide-react'
 
 const Stepper: React.FC = () => {
@@ -89,14 +90,27 @@ const MandateAuthorization: React.FC = () => {
             </label>
           </div>
 
-          <button
-            disabled={!agreed}
-            className={`w-full py-3.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-              agreed ? 'bg-[#005AD2] text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            Authorize & Finish <Lock size={14} />
-          </button>
+          {agreed ? (
+            <Link
+              to="/dashboard"
+              className="w-full py-3.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 transition-all bg-[#005AD2] text-white hover:bg-blue-700"
+            >
+              Authorize & Finish <Lock size={14} />
+            </Link>
+          ) : (
+            <button
+              disabled
+              className="w-full py-3.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 bg-gray-200 text-gray-400 cursor-not-allowed"
+            >
+              Authorize & Finish <Lock size={14} />
+            </button>
+          )}
+
+          <div className="text-center">
+            <Link to="/dashboard" className="text-[11px] font-bold text-[#005AD2] hover:underline">
+              Skip to dashboard
+            </Link>
+          </div>
 
           <div className="flex items-center justify-center gap-2 text-gray-400">
             <Shield size={12} />

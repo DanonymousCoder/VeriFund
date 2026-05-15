@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Grid3X3, RefreshCw, Lock, Check, ArrowRight } from 'lucide-react'
 import verifundLogo from '../assets/verifund-logo.png'
 
@@ -101,9 +102,12 @@ export const VerificationForm: React.FC = () => {
 
       {/* Footer Action Area */}
       <div className="bg-[#E5EFFF] p-6 border-t border-gray-100">
-        <button className="w-full bg-[#005AD2] text-white py-3.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors">
+        <Link
+          to="/verify/account"
+          className="w-full bg-[#005AD2] text-white py-3.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
+        >
           Proceed to Account <ArrowRight size={16} />
-        </button>
+        </Link>
       </div>
     </div>
   )
