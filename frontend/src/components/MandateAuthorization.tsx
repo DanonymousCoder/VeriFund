@@ -12,7 +12,7 @@ const Stepper: React.FC = () => {
 
   return (
     <div className="flex items-center justify-between w-full max-w-xs mx-auto mb-8 relative">
-      <div className="absolute top-4 left-0 w-full h-[1px] bg-gray-200 -z-0" />
+      <div className="absolute top-4 left-0 w-full h-px bg-gray-200 z-0" />
 
       {steps.map((step, idx) => (
         <div key={idx} className="flex flex-col items-center z-10">

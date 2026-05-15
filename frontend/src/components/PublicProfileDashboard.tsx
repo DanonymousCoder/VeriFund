@@ -78,7 +78,7 @@ export const TrustGauge: React.FC<TrustGaugeProps> = ({ score }) => (
         <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">out of 100</span>
       </div>
     </div>
-    <p className="mt-8 text-[11px] text-gray-400 leading-relaxed max-w-[220px] mx-auto">
+    <p className="mt-8 text-[11px] text-gray-400 leading-relaxed max-w-55 mx-auto">
       Excellent standing. High reliability in member verification and consistent contribution patterns.
     </p>
   </div>

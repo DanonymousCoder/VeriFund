@@ -20,7 +20,7 @@ const StatusStep: React.FC<StatusStepProps> = ({ label, time, completed, active 
 
   return (
     <div className="flex gap-4 relative z-10">
-      <div className={`w-5 h-5 rounded-full border-2 border-white flex items-center justify-center flex-shrink-0 ${dotColor}`}>
+      <div className={`w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shrink-0 ${dotColor}`}>
         {completed && <CheckCircle2 size={14} className="text-white" />}
       </div>
       <div>
@@ -126,7 +126,7 @@ export const AIRiskProfile: React.FC = () => (
 export const TransactionStatus: React.FC = () => (
   <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
     <h3 className="text-sm font-bold text-gray-900 mb-6">Status</h3>
-    <div className="space-y-6 relative before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100">
+    <div className="space-y-6 relative before:absolute before:left-2.25 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
       <StatusStep label="Submitted" time="Today, 09:41 AM" completed />
       <StatusStep label="AI Risk Checked" time="Today, 09:42 AM" completed />
       <StatusStep label="Signatures Pending" time="Awaiting 2 of 3" active />

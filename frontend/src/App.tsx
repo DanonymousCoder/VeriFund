@@ -308,11 +308,11 @@ function Hero() {
         <div className="relative">
           <div className="absolute -left-8 -top-8 h-36 w-36 rounded-full bg-blue-200/40 blur-3xl" />
           <div className="absolute -bottom-10 right-0 h-44 w-44 rounded-full bg-cyan-200/40 blur-3xl" />
-          <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-200/70">
+          <div className="relative overflow-hidden rounded-4xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-200/70">
             <img
               src={heroImage}
               alt="VeriFund analytics dashboard preview"
-              className="h-full w-full rounded-[1.5rem] object-cover"
+              className="h-full w-full rounded-3xl object-cover"
             />
           </div>
         </div>
@@ -400,7 +400,7 @@ function AboutSection() {
   return (
     <section id="about" className="bg-slate-50 py-24">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
-        <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-10 text-white shadow-xl shadow-slate-200/50">
+        <div className="rounded-4xl border border-slate-200 bg-slate-950 p-10 text-white shadow-xl shadow-slate-200/50">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">About VeriFund</p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
             A modern operating layer for cooperative finance.
@@ -421,14 +421,14 @@ function AboutSection() {
         </div>
 
         <div className="grid gap-6">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
             <Users className="h-10 w-10 text-blue-700" />
             <h3 className="mt-5 text-xl font-semibold text-slate-950">Built for member trust</h3>
             <p className="mt-3 text-sm leading-7 text-slate-600">
               Clear records and consistent workflows help teams explain decisions and keep members aligned.
             </p>
           </div>
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
             <ShieldCheck className="h-10 w-10 text-blue-700" />
             <h3 className="mt-5 text-xl font-semibold text-slate-950">Designed for control</h3>
             <p className="mt-3 text-sm leading-7 text-slate-600">

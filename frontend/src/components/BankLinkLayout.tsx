@@ -26,7 +26,7 @@ const Stepper: React.FC<{ currentStep?: number }> = ({ currentStep = 0 }) => {
                 {label}
               </span>
             </div>
-            {index < labels.length - 1 && <div className={`flex-1 h-[1px] mx-4 ${index < currentStep ? 'bg-emerald-500' : 'bg-gray-200'}`} />}
+            {index < labels.length - 1 && <div className={`flex-1 h-px mx-4 ${index < currentStep ? 'bg-emerald-500' : 'bg-gray-200'}`} />}
           </React.Fragment>
         )
       })}
