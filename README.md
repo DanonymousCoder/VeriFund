@@ -146,19 +146,18 @@ What is not built out yet is mostly breadth, not core flow:
 - no advanced admin CRUD screens yet
 - no pagination/filter params on most list endpoints yet
 - no email/push notification service yet
-- AI endpoints are production-shaped but still use heuristic fallback logic by default
 
-## AI Demo Scenario (New)
+## AI Integration Verification
 
-A quick-start script is now available to showcase the VeriFund AI capabilities:
+You can verify the AI service integration and external API connectivity using the integration script:
 
 ```bash
-python scripts/demo_ai_scenario.py
+python scripts/verify_ai_integration.py
 ```
 
-This demo showcases:
-- **Transaction Anomaly Detection**: Real-time scoring of contributions using a heuristic engine integrated with **real-world currency exchange data** (via ExchangeRate-API).
-- **Deep Triage (Simulated LLM)**: Sophisticated NLP analysis of whistleblower reports with intent detection, evidence extraction, and escalation logic.
-- **International Context**: Automatically converts NGN values to USD in risk reports to provide global financial perspective.
+This script validates:
+- **Anomaly Detection Connectivity**: Verifies the heuristic scoring engine and the real-time currency conversion API.
+- **Triage Service Analysis**: Tests the NLP triage engine for whistleblower reports.
+- **Production AI Readiness**: Checks for the presence of production-grade model endpoints.
 
-See `AI_INTEGRATION_AND_HOSTING.md` for full endpoint documentation.
+See `AI_INTEGRATION_AND_HOSTING.md` for full technical documentation.

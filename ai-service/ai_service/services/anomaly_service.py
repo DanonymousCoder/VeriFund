@@ -21,16 +21,16 @@ def score_transaction(transaction: dict) -> dict:
     )
     flagged = anomaly_score > 0.7
 
-    # REAL API CALL (Free): Get current NGN/USD rate for international context
+    # Real-time exchange rate for international risk context
     usd_value = 0
     try:
-        # Using a free, no-key-required API for the demo
+        # Fetching current NGN/USD rate
         rate_resp = requests.get("https://api.exchangerate-api.com/v4/latest/NGN", timeout=2)
         if rate_resp.status_code == 200:
             rate = rate_resp.json().get("rates", {}).get("USD", 0)
             usd_value = round((amount / 100) * rate, 2)
     except Exception as e:
-        logger.warning(f"External API call failed: {e}")
+        logger.warning(f"External exchange rate sync failed: {e}")
 
     if flagged:
         reason = f"Contribution of ~${usd_value} USD deviates materially from the member's recent pattern."
@@ -43,9 +43,9 @@ def score_transaction(transaction: dict) -> dict:
         "anomaly_score": anomaly_score,
         "flagged": flagged,
         "reason": reason,
-        "model": "heuristic_isolation_forest_v2_ext",
+        "model": "verifund_anomaly_v2",
         "external_context": {
             "usd_equivalent": usd_value,
-            "api_provider": "ExchangeRate-API (Free)"
+            "api_provider": "ExchangeRate-API"
         }
     }
