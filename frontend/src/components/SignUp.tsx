@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
 import { storageService } from '../services/storage'
+import { apiService } from '../services/api'
 import verifundLogo from '../assets/verifund-logo.png'
 import type { CooperativeRecord } from '../types/storage'
+import { APIError } from '../types/api'
 
 export function SignUp() {
   const navigate = useNavigate()
@@ -70,59 +72,67 @@ export function SignUp() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.email || !formData.cooperativeCode || !formData.password) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.cooperativeCode || !formData.password) {
       alert('Please fill in all fields')
       return
     }
 
     setLoading(true)
     try {
-      const cooperative = await resolveCooperativeInput(formData.cooperativeCode)
-      if (!cooperative) {
-        alert('Invalid invite/cooperative code. Ask your admin for a valid invite link or code.')
-        return
-      }
+      // Split name into first and last
+      const nameParts = formData.name.trim().split(' ')
+      const firstName = nameParts[0] || formData.name
+      const lastName = nameParts.slice(1).join(' ') || ''
 
-      const cooperativeId = cooperative.cooperativeCode
-      const memberId = `MEM-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
-
-      // Save session
-      await storageService.auth.setSession({
-        memberId,
-        cooperativeId,
+      // Register with API
+      const response = await apiService.register({
+        bvn: '12345678901', // TODO: Collect BVN in form
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: formData.phone,
         email: formData.email,
-        name: formData.name,
-        activeRole: 'member',
-        availableRoles: ['member'],
-        trustScore: 75,
-        verificationStatus: 'pending',
-        onboardingComplete: false,
-        timestamp: Date.now(),
+        password: formData.password,
       })
 
-      // Save member profile
-      await storageService.member.setProfile({
-        memberId,
-        name: formData.name,
-        email: formData.email,
-        cooperativeId,
-        cooperativeCode: cooperative.cooperativeCode,
-        cooperativeName: cooperative.cooperativeName,
-        virtualAccountNumber: cooperative.virtualAccountNumber,
-        role: 'member',
-        savingsBalance: 0,
-        contributions: 0,
-        trustScore: 75,
-        verificationStatus: 'pending',
-        termsAccepted: false,
-        onboardingComplete: false,
-      })
+      // Token is auto-stored by apiService
+      storageService.updateDriver()
 
-      alert(`✓ Account created!\n\nCooperative Code: ${cooperative.cooperativeCode}\nVirtual Account: ${cooperative.virtualAccountNumber}\n\nComplete onboarding to access your dashboard.`)
+      // Store cooperative context for later use
+      const cooperativeCode = formData.cooperativeCode
+
+      // Store cooperative context
+      localStorage.setItem(
+        'current_cooperative',
+        JSON.stringify({
+          id: cooperativeCode,
+          name: cooperativeInfo?.cooperativeName || 'Member Cooperative',
+        })
+      )
+
+      alert(`✓ Account created!\n\nBVN Verification Status: ${response.member.bvn_verified ? 'Verified' : 'Pending'}\n\nComplete onboarding to access your dashboard.`)
       navigate('/verify')
     } catch (error) {
       console.error('Signup failed:', error)
-      alert('Signup failed. Please try again.')
+      let errorMessage = 'Signup failed. Please try again.'
+      if (error instanceof APIError) {
+        // Handle specific API errors
+        if (typeof error.data === 'object' && error.data !== null) {
+          const details = Object.entries(error.data)
+            .map(([key, value]) => {
+              if (Array.isArray(value)) {
+                return `${key}: ${value.join(', ')}`
+              }
+              return `${key}: ${String(value)}`
+            })
+            .join('\n')
+          errorMessage = details || error.message
+        } else {
+          errorMessage = error.message
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      alert(errorMessage)
     } finally {
       setLoading(false)
     }

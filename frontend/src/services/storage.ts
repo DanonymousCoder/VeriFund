@@ -2,20 +2,18 @@
  * Storage abstraction service for VeriFund.
  *
  * This service provides a clean interface to persist and retrieve app data.
- * Currently backed by localStorage, but can be swapped to API calls when backend is ready.
+ * Backed by API when available, falls back to localStorage for demo/development.
  *
- * To migrate to backend:
- * 1. Replace localStorage calls with API requests
- * 2. Update error handling to match API response patterns
- * 3. No component code changes needed (interface stays the same)
+ * To migrate back to localStorage:
+ * Change STORAGE_BACKEND to 'local' below.
  *
  * Example migration:
  * ```
- * // Current: localStorage
- * const data = localStorage.getItem('key')
+ * // Current: API
+ * const data = await apiService.get('/data')
  *
- * // Future: API
- * const data = await fetch('/api/data').then(r => r.json())
+ * // Fallback: localStorage
+ * const data = localStorage.getItem('key')
  * ```
  */
 
@@ -27,6 +25,8 @@ import type {
   WithdrawalRequest,
   FraudReport,
 } from '../types/storage'
+import { apiStorageDriver } from './apiStorageDriver'
+import { apiService } from './api'
 
 const STORAGE_KEYS = {
   AUTH: 'vf_auth_session',
@@ -41,7 +41,7 @@ const STORAGE_KEYS = {
  * Abstract storage interface. Can be implemented with localStorage, API, IndexedDB, etc.
  * This ensures we don't create hard dependencies on any particular storage mechanism.
  */
-interface StorageDriver {
+export interface StorageDriver {
   getAuthSession(): Promise<AuthSession | null>
   setAuthSession(session: AuthSession | null): Promise<void>
   getMemberProfile(): Promise<MemberProfile | null>
@@ -197,14 +197,17 @@ class LocalStorageDriver implements StorageDriver {
 
 /**
  * Singleton instance of the storage driver.
- * Currently using LocalStorageDriver.
+ * Uses API driver if token is present, otherwise falls back to localStorage.
  *
- * To migrate to backend:
- * 1. Create an ApiStorageDriver class implementing StorageDriver
- * 2. Replace this line: `new ApiStorageDriver(baseUrl)`
- * 3. All component code will continue to work without changes
+ * The API driver handles all persistence through the Django backend.
+ * No component code changes needed when switching implementations.
  */
-const storageDriver: StorageDriver = new LocalStorageDriver()
+const getStorageDriver = () => {
+  const token = apiService.getToken()
+  return token ? apiStorageDriver : new LocalStorageDriver()
+}
+
+let storageDriver = getStorageDriver()
 
 /**
  * Public storage service API.
@@ -214,15 +217,15 @@ const storageDriver: StorageDriver = new LocalStorageDriver()
 export const storageService = {
   auth: {
     getSession: () => storageDriver.getAuthSession(),
-    setSession: (session: AuthSession | null) => storageDriver.setAuthSession(session),
+    setSession: async (session: AuthSession | null) => storageDriver.setAuthSession(session),
   },
   member: {
     getProfile: () => storageDriver.getMemberProfile(),
-    setProfile: (profile: MemberProfile | null) => storageDriver.setMemberProfile(profile),
+    setProfile: async (profile: MemberProfile | null) => storageDriver.setMemberProfile(profile),
   },
   dashboard: {
     getData: () => storageDriver.getDashboardData(),
-    setData: (data: DashboardData | null) => storageDriver.setDashboardData(data),
+    setData: async (data: DashboardData | null) => storageDriver.setDashboardData(data),
   },
   cooperative: {
     getAll: () => storageDriver.getCooperatives(),
@@ -261,6 +264,7 @@ export const storageService = {
     },
   },
   clear: () => storageDriver.clearAll(),
+  updateDriver: () => {
+    storageDriver = getStorageDriver()
+  },
 }
-
-export type { StorageDriver }

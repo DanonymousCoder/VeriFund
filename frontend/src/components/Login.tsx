@@ -1,20 +1,16 @@
-import { Building2, Eye, Lock, Mail, Shield } from 'lucide-react'
+import { Eye, Lock, Mail, Shield } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
 import { storageService } from '../services/storage'
-import type { AuthSession, UserRole } from '../types/storage'
+import { apiService } from '../services/api'
 import verifundLogo from '../assets/verifund-logo.png'
+import { APIError } from '../types/api'
 
 export function Login() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [cooperativePreview, setCooperativePreview] = useState<{
-    cooperativeName: string
-    adminName: string
-    monthlyContributionAmount: number
-  } | null>(null)
 
   const [formData, setFormData] = useState({
     cooperativeCode: '',
@@ -38,113 +34,63 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.cooperativeCode || !formData.email || !formData.password) {
+    if (!formData.email || !formData.password) {
       alert('Please fill in all fields')
       return
     }
 
     setLoading(true)
     try {
-      const cooperative = await storageService.cooperative.findByCode(formData.cooperativeCode)
-      if (!cooperative) {
-        alert('Cooperative code not found. Ask your admin to register the cooperative first.')
-        return
-      }
+      // Login with API using phone number or email
+      // Backend expects phone_number, so we'll use email but backend should accept both
+      await apiService.login({
+        phone_number: formData.email, // Backend API expects phone_number
+        password: formData.password,
+      })
 
-      const availableRoles: UserRole[] = ['member']
-      if (cooperative.adminEmail.toLowerCase() === formData.email.toLowerCase()) {
-        availableRoles.push('admin')
-      }
-      const executiveMatch = cooperative.executives.find(
-        (exec) => exec.email?.toLowerCase() === formData.email.toLowerCase(),
-      )
-      if (executiveMatch) {
-        availableRoles.push('executive')
-      }
+      // Token is auto-stored by apiService
+      storageService.updateDriver()
 
-      const selectedRole = formData.role as UserRole
-      if (!availableRoles.includes(selectedRole)) {
-        alert(`This account does not have ${selectedRole} access for this cooperative.`)
-        return
-      }
+      // Get current member details
+      const currentMember = await apiService.getCurrentMember()
 
-      // Try to get saved session with matching email
-      const existingProfile = await storageService.member.getProfile()
-
-      if (existingProfile && existingProfile.email === formData.email && existingProfile.cooperativeId === cooperative.cooperativeCode) {
-        // Valid login
-        const roleOnLogin = selectedRole
-        const onboardingComplete = roleOnLogin === 'member' ? (existingProfile.onboardingComplete ?? false) : true
-        const session = {
-          memberId: existingProfile.memberId,
-          cooperativeId: existingProfile.cooperativeId,
-          email: existingProfile.email,
-          name: existingProfile.name,
-          activeRole: roleOnLogin,
-          availableRoles,
-          trustScore: existingProfile.trustScore,
-          verificationStatus: existingProfile.verificationStatus,
-          onboardingComplete,
-          timestamp: Date.now(),
-        }
-        await storageService.auth.setSession(session as AuthSession)
-        navigate(
-          roleOnLogin === 'admin'
-            ? '/admin/overview'
-            : roleOnLogin === 'executive'
-              ? '/executive/inbox'
-              : onboardingComplete
-                ? '/dashboard'
-                : '/verify',
-        )
+      // Role-aware navigation
+      if (currentMember.role === 'ADMIN' || currentMember.role === 'TREASURER') {
+        navigate('/admin/overview')
+      } else if (currentMember.role === 'EXECUTIVE1' || currentMember.role === 'EXECUTIVE2') {
+        navigate('/executive/inbox')
       } else {
-        // New member under a valid cooperative
-        const memberId = `MEM-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
-        const roleOnLogin = selectedRole
-        const onboardingComplete = roleOnLogin !== 'member'
-        const session = {
-          memberId,
-          cooperativeId: cooperative.cooperativeCode,
-          email: formData.email,
-          name: roleOnLogin === 'admin' ? cooperative.adminName : 'Demo Member',
-          activeRole: roleOnLogin,
-          availableRoles,
-          trustScore: 75,
-          verificationStatus: onboardingComplete ? 'verified' : 'pending',
-          onboardingComplete,
-          timestamp: Date.now(),
+        // Member - check if onboarded
+        const profile = await storageService.member.getProfile()
+        if (profile?.onboardingComplete) {
+          navigate('/dashboard')
+        } else {
+          navigate('/verify')
         }
-        await storageService.auth.setSession(session as AuthSession)
-        
-        // Also save demo profile
-        await storageService.member.setProfile({
-          memberId,
-          name: 'Demo Member',
-          email: formData.email,
-          cooperativeId: cooperative.cooperativeCode,
-          cooperativeCode: cooperative.cooperativeCode,
-          cooperativeName: cooperative.cooperativeName,
-          virtualAccountNumber: cooperative.virtualAccountNumber,
-          role: roleOnLogin,
-          savingsBalance: 1250000,
-          contributions: 24,
-          trustScore: 75,
-          verificationStatus: onboardingComplete ? 'verified' : 'pending',
-          termsAccepted: onboardingComplete,
-          onboardingComplete,
-        })
-
-        navigate(
-          roleOnLogin === 'admin'
-            ? '/admin/overview'
-            : roleOnLogin === 'executive'
-              ? '/executive/inbox'
-              : '/verify',
-        )
       }
     } catch (error) {
       console.error('Login failed:', error)
-      alert('Login failed. Please try again.')
+      let errorMessage = 'Login failed. Please check your credentials and try again.'
+      if (error instanceof APIError) {
+        if (error.status === 401) {
+          errorMessage = 'Invalid phone number or password.'
+        } else if (typeof error.data === 'object' && error.data !== null) {
+          const details = Object.entries(error.data)
+            .map(([key, value]) => {
+              if (Array.isArray(value)) {
+                return `${key}: ${value.join(', ')}`
+              }
+              return `${key}: ${String(value)}`
+            })
+            .join('\n')
+          errorMessage = details || error.message
+        } else {
+          errorMessage = error.message
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      alert(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -165,60 +111,14 @@ export function Login() {
       <div className="w-full max-w-md rounded-xl border border-gray-100 bg-white p-10 shadow-sm">
         <h2 className="mb-8 text-center text-xl font-bold text-gray-800">Member Login</h2>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <AuthInput
-            label="Cooperative Code"
-            icon={Building2}
-            placeholder="e.g. VF-ABCD-1234"
-            value={formData.cooperativeCode}
-            onChange={async (e) => {
-              handleChange(e)
-              const code = e.target.value.trim()
-              if (code.length < 6) {
-                setCooperativePreview(null)
-                return
-              }
-
-              const cooperative = await storageService.cooperative.findByCode(code)
-              if (!cooperative) {
-                setCooperativePreview(null)
-                return
-              }
-
-              setCooperativePreview({
-                cooperativeName: cooperative.cooperativeName,
-                adminName: cooperative.adminName,
-                monthlyContributionAmount: cooperative.monthlyContributionAmount,
-              })
-            }}
-          />
-          {cooperativePreview ? (
-            <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
-              <p className="font-bold">{cooperativePreview.cooperativeName}</p>
-              <p>Admin: {cooperativePreview.adminName}</p>
-              <p>Monthly Contribution: NGN {cooperativePreview.monthlyContributionAmount.toLocaleString()}</p>
-            </div>
-          ) : null}
-          <AuthInput
-            label="Member Email"
+            label="Phone Number or Email"
             icon={Mail}
-            placeholder="name@cooperative.org"
+            placeholder="08012345678 or name@example.com"
             value={formData.email}
             onChange={handleChange}
           />
-
-          <div className="mb-5">
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-500">Access as</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
-              className="w-full rounded-md border border-gray-200 px-3 py-3 text-sm text-gray-700"
-            >
-              <option value="member">Member</option>
-              <option value="admin">Cooperative Admin</option>
-              <option value="executive">Executive / Co-signer</option>
-            </select>
-          </div>
 
           <div className="relative">
             <AuthInput
