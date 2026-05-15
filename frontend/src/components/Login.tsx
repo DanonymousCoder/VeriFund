@@ -12,7 +12,7 @@ export function Login() {
   const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState({
-    cooperativeId: '',
+    cooperativeCode: '',
     email: '',
     password: '',
   })
@@ -20,7 +20,7 @@ export function Login() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { placeholder, value } = e.target
     const fieldMap: Record<string, keyof typeof formData> = {
-      'e.g. VF-90210': 'cooperativeId',
+      'e.g. VF-ABCD-1234': 'cooperativeCode',
       'name@cooperative.org': 'email',
       '••••••••': 'password',
     }
@@ -32,17 +32,23 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.cooperativeId || !formData.email || !formData.password) {
+    if (!formData.cooperativeCode || !formData.email || !formData.password) {
       alert('Please fill in all fields')
       return
     }
 
     setLoading(true)
     try {
+      const cooperative = await storageService.cooperative.findByCode(formData.cooperativeCode)
+      if (!cooperative) {
+        alert('Cooperative code not found. Ask your admin to register the cooperative first.')
+        return
+      }
+
       // Try to get saved session with matching email
       const existingProfile = await storageService.member.getProfile()
 
-      if (existingProfile && existingProfile.email === formData.email && existingProfile.cooperativeId === formData.cooperativeId) {
+      if (existingProfile && existingProfile.email === formData.email && existingProfile.cooperativeId === cooperative.cooperativeCode) {
         // Valid login
         const session = {
           memberId: existingProfile.memberId,
@@ -51,20 +57,22 @@ export function Login() {
           name: existingProfile.name,
           trustScore: existingProfile.trustScore,
           verificationStatus: existingProfile.verificationStatus,
+          onboardingComplete: existingProfile.onboardingComplete ?? false,
           timestamp: Date.now(),
         }
         await storageService.auth.setSession(session as AuthSession)
-        navigate('/dashboard')
+        navigate((existingProfile.onboardingComplete ?? false) ? '/dashboard' : '/verify')
       } else {
-        // Demo mode: accept any credentials and create a session
+        // New member under a valid cooperative
         const memberId = `MEM-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
         const session = {
           memberId,
-          cooperativeId: formData.cooperativeId,
+          cooperativeId: cooperative.cooperativeCode,
           email: formData.email,
           name: 'Demo Member',
           trustScore: 75,
           verificationStatus: 'pending',
+          onboardingComplete: false,
           timestamp: Date.now(),
         }
         await storageService.auth.setSession(session as AuthSession)
@@ -74,15 +82,18 @@ export function Login() {
           memberId,
           name: 'Demo Member',
           email: formData.email,
-          cooperativeId: formData.cooperativeId,
-          cooperativeName: 'Demo Cooperative',
+          cooperativeId: cooperative.cooperativeCode,
+          cooperativeCode: cooperative.cooperativeCode,
+          cooperativeName: cooperative.cooperativeName,
+          virtualAccountNumber: cooperative.virtualAccountNumber,
           savingsBalance: 1250000,
           contributions: 24,
           trustScore: 75,
           verificationStatus: 'pending',
+          onboardingComplete: false,
         })
 
-        navigate('/dashboard')
+        navigate('/verify')
       }
     } catch (error) {
       console.error('Login failed:', error)
@@ -109,10 +120,10 @@ export function Login() {
 
         <form onSubmit={handleSubmit}>
           <AuthInput
-            label="Cooperative ID"
+            label="Cooperative Code"
             icon={Building2}
-            placeholder="e.g. VF-90210"
-            value={formData.cooperativeId}
+            placeholder="e.g. VF-ABCD-1234"
+            value={formData.cooperativeCode}
             onChange={handleChange}
           />
           <AuthInput

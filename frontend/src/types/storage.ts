@@ -10,6 +10,7 @@ export type AuthSession = {
   name: string
   trustScore: number
   verificationStatus: 'verified' | 'pending' | 'flagged'
+  onboardingComplete?: boolean
   timestamp: number // When the session was created
 }
 
@@ -19,10 +20,23 @@ export type MemberProfile = {
   email: string
   cooperativeId: string
   cooperativeName: string
+  cooperativeCode?: string
+  virtualAccountNumber?: string
   savingsBalance: number
   contributions: number
   trustScore: number
   verificationStatus: 'verified' | 'pending' | 'flagged'
+  onboardingComplete?: boolean
+}
+
+export type CooperativeRecord = {
+  cooperativeCode: string
+  cooperativeName: string
+  registrationNumber: string
+  adminName: string
+  adminEmail: string
+  virtualAccountNumber: string
+  createdAt: number
 }
 
 export type ContributionRecord = {
@@ -46,4 +60,5 @@ export type StorageData = {
   auth: AuthSession | null
   memberProfile: MemberProfile | null
   dashboardData: DashboardData | null
+  cooperatives?: CooperativeRecord[]
 }

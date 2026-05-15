@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth'
 import {
   ArrowRight,
   BadgeCheck,
@@ -19,6 +20,7 @@ import PublicProfileDashboard from './components/PublicProfileDashboard'
 import MultiSigAuthorization from './components/MultiSigAuthorization'
 import RegulatoryDashboard from './components/RegulatoryDashboard'
 import MandateAuthorization from './components/MandateAuthorization'
+import AdminRegisterCooperative from './components/AdminRegisterCooperative'
 import heroImage from './assets/hero.png'
 import verifundLogo from './assets/verifund-logo.png'
 
@@ -102,16 +104,67 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
-      <Route path="/dashboard" element={<MemberDashboard />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute requireOnboarding>
+            <MemberDashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/verify" element={<IdentityVerification />} />
       <Route path="/verify/account" element={<BankLinkLayout />} />
       <Route path="/verify/authorize" element={<MandateAuthorization />} />
-      <Route path="/profile" element={<PublicProfileDashboard />} />
-      <Route path="/authorize" element={<MultiSigAuthorization />} />
-      <Route path="/regulatory" element={<RegulatoryDashboard />} />
+      <Route path="/admin/register" element={<AdminRegisterCooperative />} />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute requireOnboarding>
+            <PublicProfileDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/authorize"
+        element={
+          <ProtectedRoute requireOnboarding>
+            <MultiSigAuthorization />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/regulatory"
+        element={
+          <ProtectedRoute requireOnboarding>
+            <RegulatoryDashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
+}
+
+function ProtectedRoute({ children, requireOnboarding = false }: { children: ReactNode; requireOnboarding?: boolean }) {
+  const { isAuthenticated, isLoading, session } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+        Loading...
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (requireOnboarding && !session?.onboardingComplete) {
+    return <Navigate to="/verify" replace />
+  }
+
+  return <>{children}</>
 }
 
 function LandingPage() {
@@ -170,6 +223,12 @@ function Navbar() {
           >
             Signup
           </Link>
+          <Link
+            to="/admin/register"
+            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50"
+          >
+            Admin Register
+          </Link>
         </div>
       </nav>
     </header>
@@ -197,12 +256,18 @@ function Hero() {
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <a
-              href="#features"
+            <Link
+              to="/admin/register"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-700 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/20 transition hover:-translate-y-0.5 hover:bg-blue-800"
             >
-              Join a cooperative
+              Register Cooperative
               <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="#features"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3.5 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              Explore features
             </a>
             <Link
               to="/signup"

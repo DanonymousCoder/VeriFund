@@ -14,7 +14,7 @@ export function SignUp() {
     name: '',
     email: '',
     phone: '',
-    cooperativeName: '',
+    cooperativeCode: '',
     password: '',
   })
 
@@ -24,7 +24,7 @@ export function SignUp() {
       'Jane Doe': 'name',
       'jane.doe@example.com': 'email',
       '+1 (555) 000-0000': 'phone',
-      'Central Valley Coop': 'cooperativeName',
+      'e.g. VF-ABCD-1234': 'cooperativeCode',
     }
     const field = fieldMap[placeholder]
     if (field) {
@@ -32,27 +32,22 @@ export function SignUp() {
     }
   }
 
-  const generateCooperativeID = (cooperativeName: string) => {
-    const abbrev = cooperativeName
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 3)
-    const random = Math.random().toString(36).substring(2, 7).toUpperCase()
-    return `COOP-${abbrev}-${random}`
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.email || !formData.cooperativeName || !formData.password) {
+    if (!formData.name || !formData.email || !formData.cooperativeCode || !formData.password) {
       alert('Please fill in all fields')
       return
     }
 
     setLoading(true)
     try {
-      const cooperativeId = generateCooperativeID(formData.cooperativeName)
+      const cooperative = await storageService.cooperative.findByCode(formData.cooperativeCode)
+      if (!cooperative) {
+        alert('Invalid cooperative code. Ask your admin for the registered cooperative code.')
+        return
+      }
+
+      const cooperativeId = cooperative.cooperativeCode
       const memberId = `MEM-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
 
       // Save session
@@ -63,6 +58,7 @@ export function SignUp() {
         name: formData.name,
         trustScore: 75,
         verificationStatus: 'pending',
+        onboardingComplete: false,
         timestamp: Date.now(),
       })
 
@@ -72,15 +68,18 @@ export function SignUp() {
         name: formData.name,
         email: formData.email,
         cooperativeId,
-        cooperativeName: formData.cooperativeName,
+        cooperativeCode: cooperative.cooperativeCode,
+        cooperativeName: cooperative.cooperativeName,
+        virtualAccountNumber: cooperative.virtualAccountNumber,
         savingsBalance: 0,
         contributions: 0,
         trustScore: 75,
         verificationStatus: 'pending',
+        onboardingComplete: false,
       })
 
-      alert(`✓ Account created!\n\nYour Cooperative ID: ${cooperativeId}\n\nUse this + your email to login.`)
-      navigate('/dashboard')
+      alert(`✓ Account created!\n\nCooperative Code: ${cooperative.cooperativeCode}\nVirtual Account: ${cooperative.virtualAccountNumber}\n\nComplete onboarding to access your dashboard.`)
+      navigate('/verify')
     } catch (error) {
       console.error('Signup failed:', error)
       alert('Signup failed. Please try again.')
@@ -139,10 +138,10 @@ export function SignUp() {
               onChange={handleChange}
             />
             <AuthInput
-              label="Cooperative Name"
+              label="Cooperative Code"
               icon={Building2}
-              placeholder="Central Valley Coop"
-              value={formData.cooperativeName}
+              placeholder="e.g. VF-ABCD-1234"
+              value={formData.cooperativeCode}
               onChange={handleChange}
             />
 

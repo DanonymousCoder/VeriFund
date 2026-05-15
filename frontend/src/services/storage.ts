@@ -19,12 +19,13 @@
  * ```
  */
 
-import type { AuthSession, MemberProfile, DashboardData } from '../types/storage'
+import type { AuthSession, MemberProfile, DashboardData, CooperativeRecord } from '../types/storage'
 
 const STORAGE_KEYS = {
   AUTH: 'vf_auth_session',
   MEMBER_PROFILE: 'vf_member_profile',
   DASHBOARD_DATA: 'vf_dashboard_data',
+  COOPERATIVES: 'vf_registered_cooperatives',
 } as const
 
 /**
@@ -38,6 +39,8 @@ interface StorageDriver {
   setMemberProfile(profile: MemberProfile | null): Promise<void>
   getDashboardData(): Promise<DashboardData | null>
   setDashboardData(data: DashboardData | null): Promise<void>
+  getCooperatives(): Promise<CooperativeRecord[]>
+  setCooperatives(cooperatives: CooperativeRecord[]): Promise<void>
   clearAll(): Promise<void>
 }
 
@@ -114,6 +117,24 @@ class LocalStorageDriver implements StorageDriver {
     }
   }
 
+  async getCooperatives(): Promise<CooperativeRecord[]> {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.COOPERATIVES)
+      return data ? JSON.parse(data) : []
+    } catch {
+      console.error('Failed to retrieve cooperatives from storage')
+      return []
+    }
+  }
+
+  async setCooperatives(cooperatives: CooperativeRecord[]): Promise<void> {
+    try {
+      localStorage.setItem(STORAGE_KEYS.COOPERATIVES, JSON.stringify(cooperatives))
+    } catch {
+      console.error('Failed to save cooperatives to storage')
+    }
+  }
+
   async clearAll(): Promise<void> {
     try {
       Object.values(STORAGE_KEYS).forEach((key) => {
@@ -153,6 +174,18 @@ export const storageService = {
   dashboard: {
     getData: () => storageDriver.getDashboardData(),
     setData: (data: DashboardData | null) => storageDriver.setDashboardData(data),
+  },
+  cooperative: {
+    getAll: () => storageDriver.getCooperatives(),
+    register: async (record: CooperativeRecord) => {
+      const cooperatives = await storageDriver.getCooperatives()
+      await storageDriver.setCooperatives([...cooperatives, record])
+      return record
+    },
+    findByCode: async (cooperativeCode: string) => {
+      const cooperatives = await storageDriver.getCooperatives()
+      return cooperatives.find((item) => item.cooperativeCode.toUpperCase() === cooperativeCode.toUpperCase()) ?? null
+    },
   },
   clear: () => storageDriver.clearAll(),
 }
