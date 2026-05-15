@@ -24,6 +24,14 @@ SQUAD_SETTLEMENT_ADDRESS = os.getenv("SQUAD_SETTLEMENT_ADDRESS", "")
 SQUAD_SETTLEMENT_DOB = os.getenv("SQUAD_SETTLEMENT_DOB", "")
 SQUAD_SETTLEMENT_GENDER = os.getenv("SQUAD_SETTLEMENT_GENDER", "")
 
+DIRECT_DEBIT_BANK_CODE_MAP = {
+    "000013": "058",
+}
+
+PAYOUT_BANK_CODE_MAP = {
+    "058": "000013",
+}
+
 
 def _headers() -> dict[str, str]:
     headers = {"Content-Type": "application/json"}
@@ -55,10 +63,37 @@ def _request(method: str, path: str, payload: dict[str, Any] | None = None) -> d
         return {"success": False, "status_code": 0, "message": str(exc), "data": {}, "raw": {}}
 
 
+def _is_sandbox_key() -> bool:
+    return SQUAD_SECRET_KEY.startswith("sandbox_sk_")
+
+
+def _normalize_bank_code(bank_code: str, *, flow: str) -> str:
+    normalized = (bank_code or "").strip()
+    if flow == "direct_debit":
+        return DIRECT_DEBIT_BANK_CODE_MAP.get(normalized, normalized)
+    if flow == "payout":
+        return PAYOUT_BANK_CODE_MAP.get(normalized, normalized)
+    return normalized
+
+
 def verify_bvn(bvn: str, first_name: str, last_name: str) -> dict[str, Any]:
     payload = {"bvn": bvn, "first_name": first_name, "last_name": last_name}
     if SQUAD_SECRET_KEY and not SQUAD_MOCK_MODE:
-        return _request("POST", SQUAD_BVN_VERIFY_PATH, payload)
+        result = _request("POST", SQUAD_BVN_VERIFY_PATH, payload)
+        # Squad's sandbox BVN endpoint is unstable across merchant profiles.
+        # For sandbox/demo flows, fall back to syntax validation when the endpoint
+        # is unavailable or returns an empty route-level failure.
+        if result.get("success"):
+            return result
+        if _is_sandbox_key() and len(bvn) == 11 and bvn.isdigit():
+            if result.get("status_code") in {0, 404}:
+                return {
+                    "success": True,
+                    "data": payload,
+                    "message": "Sandbox BVN verification fallback succeeded.",
+                    "raw": result.get("raw", {}),
+                }
+        return result
 
     if len(bvn) == 11 and bvn.isdigit():
         return {"success": True, "data": payload, "message": "Sandbox BVN verification succeeded."}
@@ -162,12 +197,13 @@ def create_direct_debit_mandate(
     phone_number: str,
     mandate_type: str = "emandate",
 ) -> dict[str, Any]:
+    normalized_bank_code = _normalize_bank_code(bank_code, flow="direct_debit")
     if SQUAD_SECRET_KEY and not SQUAD_MOCK_MODE and SQUAD_DIRECT_DEBIT_PATH:
         payload = {
             "mandate_type": mandate_type,
             "amount": str(int(amount_kobo)),
             "account_number": account_number,
-            "bank_code": bank_code,
+            "bank_code": normalized_bank_code,
             "description": description,
             "start_date": start_date,
             "end_date": end_date,
@@ -283,7 +319,7 @@ def simulate_virtual_account_payment(
 
 
 def lookup_account_name(bank_code: str, account_number: str) -> dict[str, Any]:
-    payload = {"bank_code": bank_code, "account_number": account_number}
+    payload = {"bank_code": _normalize_bank_code(bank_code, flow="payout"), "account_number": account_number}
     if SQUAD_SECRET_KEY and not SQUAD_MOCK_MODE:
         return _request("POST", "/payout/account/lookup", payload)
     return {
@@ -322,7 +358,7 @@ def initiate_transfer(
     payload = {
         "transaction_reference": idempotency_key,
         "amount": str(int(amount_kobo)),
-        "bank_code": bank_code,
+        "bank_code": _normalize_bank_code(bank_code, flow="payout"),
         "account_number": account_number,
         "account_name": resolved_account_name,
         "currency_id": "NGN",

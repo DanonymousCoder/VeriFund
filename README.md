@@ -4,10 +4,10 @@ Squad Hackathon backend for cooperative transparency, contribution collection, a
 
 ## What changed for the hackathon pass
 
-- BVN verification stays at member registration.
+- Member registration no longer depends on a standalone BVN verification endpoint.
 - Cooperative creation still provisions a Squad virtual account.
 - Contribution collection now supports a stronger default flow: each member can create a dedicated Squad virtual account per cooperative, then incoming transfer webhooks are matched back to that member automatically.
-- Direct debit remains available, but it is no longer the primary demo path.
+- Direct debit mandate routes are disabled from the public API surface for this deploy path.
 - Regulator and audit endpoints now expose trust, contribution, and withdrawal evidence in one place.
 
 ## Services
@@ -15,9 +15,9 @@ Squad Hackathon backend for cooperative transparency, contribution collection, a
 | Service | Port | Role |
 |---|---|---|
 | `api-gateway` | `8000` | Frontend entry point |
-| `member-service` | `8001` | Auth, registration, BVN gate |
+| `member-service` | `8001` | Auth and registration |
 | `cooperative-service` | `8002` | Cooperative records, trust score, regulator summary |
-| `contribution-service` | `8003` | Member contribution VAs, mandates, Squad webhook ingestion |
+| `contribution-service` | `8003` | Member contribution VAs and Squad webhook ingestion |
 | `withdrawal-service` | `8004` | Multi-signature withdrawals, Squad payouts |
 | `ai-service` | `8005` | Risk and anomaly scoring |
 | `notification-service` | `8006` | SMS notifications |
@@ -44,6 +44,57 @@ docker compose exec contribution-service python /app/scripts/bootstrap_db.py
 docker compose ps
 ```
 
+## Deploy on Railway
+
+This repo now includes a root `Dockerfile`, root `requirements.txt`, root `start.sh`, and `railway.json`.
+
+That gives Railway a clear build and start contract from the repo root.
+
+1. Push this repo to GitHub.
+2. In Railway, create a new project from the repo.
+3. Railway should detect the root `Dockerfile`.
+4. Set these env vars:
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - `SQUAD_SECRET_KEY`
+   - `SQUAD_PUBLIC_KEY`
+   - `SQUAD_WEBHOOK_SECRET`
+   - `SQUAD_SETTLEMENT_ACCOUNT`
+   - `SQUAD_SETTLEMENT_MOBILE`
+   - `SQUAD_SETTLEMENT_EMAIL`
+   - `SQUAD_SETTLEMENT_ADDRESS`
+   - `SQUAD_SETTLEMENT_DOB`
+   - `SQUAD_SETTLEMENT_GENDER`
+   - `AT_USERNAME`
+   - `AT_API_KEY`
+5. Use the Railway public URL as your backend base URL.
+
+Railway supports Python. The earlier failure came from missing root-level build/start metadata, not from Python support.
+
+## Deploy on Render
+
+This repo now includes `render.yaml` so you can deploy the full stack as a Render Blueprint.
+
+1. Push this repo to GitHub.
+2. In Render, choose `New +` -> `Blueprint`.
+3. Select the repo and import `render.yaml`.
+4. Set the secret env vars Render cannot auto-fill:
+   - `JWT_SECRET`
+   - `SQUAD_SECRET_KEY`
+   - `SQUAD_PUBLIC_KEY`
+   - `SQUAD_WEBHOOK_SECRET`
+   - `SQUAD_SETTLEMENT_ACCOUNT`
+   - `SQUAD_SETTLEMENT_MOBILE`
+   - `SQUAD_SETTLEMENT_EMAIL`
+   - `SQUAD_SETTLEMENT_ADDRESS`
+   - `SQUAD_SETTLEMENT_DOB`
+   - `SQUAD_SETTLEMENT_GENDER`
+   - `AT_USERNAME`
+   - `AT_API_KEY`
+5. Deploy the blueprint, then use the public `verifund-api-gateway` URL as your frontend/backend base URL.
+
+The Dockerfiles now respect Render's dynamic `PORT` env var, so the same images still work locally and on Render.
+
 ## Squad env you still need
 
 You asked where to get the Squad settlement env values. Use the Squad dashboard plus your technical account manager:
@@ -66,9 +117,9 @@ For live virtual accounts, Squad’s docs indicate your settlement account must 
 
 ## Primary demo route flow
 
-1. Register member with BVN.
+1. Register member.
 2. Create cooperative.
-3. Member creates dedicated contribution virtual account for that cooperative.
+3. Member creates dedicated contribution virtual account for that cooperative. Squad validates the BVN in that flow.
 4. Member pays by transfer into that VA.
 5. Squad webhook records contribution and anomaly-scores it.
 6. Trust/regulator screens reflect the new evidence.
@@ -86,7 +137,7 @@ The current backend already has working endpoints for:
 
 - auth and member profile
 - cooperative creation, trust score, and regulator summary
-- contribution virtual accounts, contribution history, mandate creation, webhook ingestion, and audit view
+- contribution virtual accounts, contribution history, webhook ingestion, and audit view
 - withdrawal request, co-sign, and pending list
 - SMS notifications
 - AI scoring and triage routes

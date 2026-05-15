@@ -4,28 +4,19 @@ This is the fastest path to get a backend URL ready so the frontend can start in
 
 ## Recommendation
 
-Use Railway first for speed.
+Use Railway with the repo root `Dockerfile`.
 
 Reason:
 
-- this repo is a multi-service backend, not one single app
-- Railway is faster to stand up for many Docker-based services plus Postgres
+- Railway supports Python and Docker without any issue
+- the repo root now boots the internal services and exposes the gateway
 - frontend only needs one stable public gateway URL to begin integration
 
-Render is still a valid second choice, but it is more setup-heavy for this repo because you need one public service plus multiple private services.
+Render is still valid, but Railway is simpler now for this repo.
 
 ## Fastest backend shape
 
-Deploy these services:
-
-- `api-gateway` as the only public URL
-- `member-service`
-- `cooperative-service`
-- `contribution-service`
-- `withdrawal-service`
-- `ai-service`
-- `notification-service`
-- PostgreSQL
+Deploy one Railway service from the repo root plus PostgreSQL.
 
 Frontend should integrate only against:
 
@@ -34,14 +25,12 @@ Frontend should integrate only against:
 ## Railway quick path
 
 1. Create one Railway project from the repo.
-2. Add a PostgreSQL service in the same Railway project.
-3. Create one service per backend folder using its Dockerfile.
-4. Make only `api-gateway` public.
-5. Keep the other services private/internal.
-6. Set each service env vars.
-7. Point internal service URLs to Railway internal hostnames.
-8. Run `python scripts/bootstrap_db.py` once against the live DB.
-9. Set Squad webhook URL to:
+2. Add a PostgreSQL service in the same Railway project, or use your Neon `DATABASE_URL`.
+3. Deploy the repo root.
+4. Railway should build from the root `Dockerfile`.
+5. The root `start.sh` boots the internal services and exposes the gateway on `PORT`.
+6. Set the env vars.
+7. Set Squad webhook URL to:
 
 ```text
 https://your-gateway-domain/api/webhooks/squad/
@@ -62,6 +51,10 @@ Use these real values in Railway variables:
 - `SQUAD_SETTLEMENT_ADDRESS=22a adebayo farogbe street new town ikorodu lagos state`
 - `SQUAD_SETTLEMENT_DOB=10/09/2007`
 - `SQUAD_SETTLEMENT_GENDER=2`
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `AT_USERNAME`
+- `AT_API_KEY`
 
 ## Frontend integration tip
 
@@ -80,6 +73,7 @@ The frontend only needs:
 
 Use:
 
+- 1 Render Web Service from the repo root `Dockerfile`, or
 - 1 Render Web Service for `api-gateway`
 - 6 Render Private Services for the internal backends
 - 1 Render Postgres database

@@ -6,4 +6,4 @@ COPY shared ./shared
 COPY notification-service ./
 ENV PYTHONPATH=/app
 EXPOSE 8006
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8006"]
+CMD ["sh", "-c", "python manage.py runserver 0.0.0.0:${PORT:-8006}"]

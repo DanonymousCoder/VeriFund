@@ -4,7 +4,6 @@ import uuid
 from django.contrib.auth.hashers import check_password, make_password
 
 from shared.db import atomic, fetch_one
-from shared.squad.client import verify_bvn
 from shared.utils.jwt_utils import create_token
 
 
@@ -28,10 +27,6 @@ def _serialize_member(row: dict) -> dict:
 
 
 def register_member(data: dict) -> dict:
-    bvn_result = verify_bvn(data["bvn"], data["first_name"], data["last_name"])
-    if not bvn_result.get("success"):
-        return {"error": bvn_result.get("message", "BVN verification failed.")}
-
     bvn_hash = hash_bvn(data["bvn"])
     existing = fetch_one(
         """
@@ -61,7 +56,7 @@ def register_member(data: dict) -> dict:
                 role,
                 is_active
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING
                 id,
                 first_name,
@@ -82,7 +77,8 @@ def register_member(data: dict) -> dict:
                 data["phone_number"],
                 data.get("email"),
                 make_password(data["password"]),
-                True,
+                False,
+                None,
                 "MEMBER",
                 True,
             ],

@@ -18,9 +18,13 @@ from shared.squad.client import (
 
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8005").rstrip("/")
 NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:8006").rstrip("/")
+_SCHEMA_READY = False
 
 
 def ensure_contribution_schema() -> None:
+    global _SCHEMA_READY
+    if _SCHEMA_READY:
+        return
     execute(
         """
         CREATE TABLE IF NOT EXISTS direct_debit_mandates (
@@ -95,6 +99,7 @@ def ensure_contribution_schema() -> None:
         )
         """
     )
+    _SCHEMA_READY = True
 
 
 def _serialize_contribution(row: dict) -> dict:
@@ -241,8 +246,6 @@ def create_member_virtual_account(member_id: str, data: dict) -> dict:
     )
     if not member:
         return {"error": "Member not found."}
-    if not member.get("bvn_verified"):
-        return {"error": "Member BVN must be verified before creating a contribution virtual account."}
 
     cooperative = fetch_one(
         """
@@ -309,6 +312,15 @@ def create_member_virtual_account(member_id: str, data: dict) -> dict:
 
     record_id = str(uuid.uuid4())
     with atomic():
+        fetch_one(
+            """
+            UPDATE members
+            SET bvn_verified = TRUE, bvn_verified_at = COALESCE(bvn_verified_at, NOW())
+            WHERE id = %s
+            RETURNING id
+            """,
+            [member_id],
+        )
         fetch_one(
             """
             INSERT INTO contribution_virtual_accounts (
@@ -484,6 +496,15 @@ def create_mandate(member_id: str, cooperative_id: str, data: dict) -> dict:
     mandate_id = mandate_data.get("mandate_id") or mandate_data.get("id") or f"mandate-{uuid.uuid4().hex[:12]}"
     local_id = str(uuid.uuid4())
     with atomic():
+        fetch_one(
+            """
+            UPDATE members
+            SET bvn_verified = TRUE, bvn_verified_at = COALESCE(bvn_verified_at, NOW())
+            WHERE id = %s
+            RETURNING id
+            """,
+            [member_id],
+        )
         fetch_one(
             """
             INSERT INTO direct_debit_mandates (

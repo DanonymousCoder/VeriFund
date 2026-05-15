@@ -1,0 +1,245 @@
+### VeriFund manual endpoint test file
+### Use with VS Code REST Client, JetBrains HTTP Client, or any editor that supports .http files.
+### Order matters for the protected flows below.
+
+@gateway = http://127.0.0.1:8000
+@ai = http://127.0.0.1:8005
+@notify = http://127.0.0.1:8006
+
+### Replace these after you register/login and create records
+@token = paste-jwt-here
+@cooperativeId = paste-cooperative-id-here
+@withdrawalId = paste-withdrawal-id-here
+@merchantReference = paste-merchant-reference-here
+@testBvn = 22819094586
+
+### 1. Register member
+POST {{gateway}}/api/auth/register/
+Content-Type: application/json
+
+{
+  "bvn": "{{testBvn}}",
+  "first_name": "Ada",
+  "last_name": "Okafor",
+  "phone_number": "08012345678",
+  "email": "ada@example.com",
+  "password": "Passw0rd!123"
+}
+
+### 2. Login member
+POST {{gateway}}/api/auth/login/
+Content-Type: application/json
+
+{
+  "phone_number": "08012345678",
+  "password": "Passw0rd!123"
+}
+
+### 3. Get current member profile
+GET {{gateway}}/api/members/me/
+Authorization: Bearer {{token}}
+
+### 4. Update current member profile
+PATCH {{gateway}}/api/members/me/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "first_name": "Adaobi",
+  "email": "adaobi@example.com"
+}
+
+### 5. Create cooperative
+POST {{gateway}}/api/cooperatives/
+Content-Type: application/json
+
+{
+  "name": "Lagos Market Women Coop",
+  "registration_number": "REG-12345",
+  "state": "Lagos",
+  "cooperative_type": "MULTIPURPOSE",
+  "treasurer_bvn": "{{testBvn}}"
+}
+
+### 6. Cooperative detail
+GET {{gateway}}/api/cooperatives/{{cooperativeId}}/
+
+### 7. Cooperative trust score
+GET {{gateway}}/api/cooperatives/{{cooperativeId}}/trust-score/
+
+### 8. Cooperative regulator summary
+GET {{gateway}}/api/cooperatives/{{cooperativeId}}/regulator-summary/
+
+### 9. Create contribution virtual account
+POST {{gateway}}/api/contributions/virtual-account/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cooperative_id": "{{cooperativeId}}",
+  "bvn": "{{testBvn}}",
+  "dob": "07/19/1990",
+  "address": "22 Marina Road, Lagos",
+  "gender": "1",
+  "phone_number": "08012345678",
+  "email": "ada@example.com"
+}
+
+### 10. List contribution virtual accounts
+GET {{gateway}}/api/contributions/virtual-account/list/
+Authorization: Bearer {{token}}
+
+### 11. Simulate virtual account contribution
+POST {{gateway}}/api/contributions/virtual-account/simulate/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cooperative_id": "{{cooperativeId}}",
+  "amount_kobo": 500000
+}
+
+### 12. Process Squad webhook
+POST {{gateway}}/api/webhooks/squad/
+Content-Type: application/json
+
+{
+  "Event": "charge_successful",
+  "TransactionRef": "WEB-001",
+  "Body": {
+    "transaction_reference": "WEB-001",
+    "virtual_account_number": "9013151601",
+    "principal_amount": "7000.00",
+    "settled_amount": "7000.00",
+    "currency": "NGN",
+    "customer_identifier": "VF-F15BD461-105A9639"
+  }
+}
+
+### 13. Contribution history
+GET {{gateway}}/api/contributions/history/
+Authorization: Bearer {{token}}
+
+### 14. Contribution audit
+GET {{gateway}}/api/contributions/audit/{{cooperativeId}}/
+Authorization: Bearer {{token}}
+
+### 15. List webhook events
+GET {{gateway}}/api/contributions/webhooks/events/
+Authorization: Bearer {{token}}
+
+### 16. Lookup withdrawal account
+POST {{gateway}}/api/withdrawals/lookup/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "destination_bank_code": "000013",
+  "destination_account": "0123456789"
+}
+
+### 17. Create withdrawal request
+POST {{gateway}}/api/withdrawals/request/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cooperative_id": "{{cooperativeId}}",
+  "amount_kobo": 100000,
+  "destination_account": "0123456789",
+  "destination_bank_code": "000013",
+  "purpose": "Emergency member support"
+}
+
+### 18. Withdrawal detail
+GET {{gateway}}/api/withdrawals/{{withdrawalId}}/
+Authorization: Bearer {{token}}
+
+### 19. Pending withdrawals
+GET {{gateway}}/api/withdrawals/pending/?cooperative_id={{cooperativeId}}
+Authorization: Bearer {{token}}
+
+### 20. Sign withdrawal as EXECUTIVE1 or EXECUTIVE2
+POST {{gateway}}/api/withdrawals/{{withdrawalId}}/sign/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "EXECUTIVE1"
+}
+
+### 21. Requery withdrawal
+POST {{gateway}}/api/withdrawals/{{withdrawalId}}/requery/
+Authorization: Bearer {{token}}
+
+### 22. AI score transaction
+POST {{ai}}/api/ai/score-transaction/
+Content-Type: application/json
+
+{
+  "amount_kobo": 500000,
+  "rolling_90d_mean": 300000,
+  "days_since_last_contribution": 12,
+  "member_transaction_count": 7,
+  "cooperative_flagged_rate": 0.05
+}
+
+### 23. AI score cooperative
+POST {{ai}}/api/ai/score-cooperative/
+Content-Type: application/json
+
+{
+  "cooperative_id": "{{cooperativeId}}",
+  "breakdown": {
+    "contribution_regularity_score": 82,
+    "withdrawal_frequency": 2,
+    "member_churn_rate": 0.08,
+    "avg_transaction_size": 250000,
+    "num_large_withdrawals_30d": 0,
+    "bvn_verification_rate": 1.0,
+    "avg_withdrawal_risk": 0.12,
+    "flagged_ratio": 0.03,
+    "net_asset_trend_90d": 1200000
+  }
+}
+
+### 24. AI cooperative score from DB
+GET {{ai}}/api/ai/score-cooperative/{{cooperativeId}}/
+
+### 25. AI triage report
+POST {{ai}}/api/ai/triage-report/
+Content-Type: application/json
+
+{
+  "report_text": "Suspicious withdrawal missing 50000 from the cooperative wallet",
+  "reporter_cooperative_id": "{{cooperativeId}}"
+}
+
+### 26. AI graph analysis
+POST {{ai}}/api/ai/analyze-graph/
+Content-Type: application/json
+
+{
+  "cooperative_id": "{{cooperativeId}}"
+}
+
+### 27. AI graph analysis from DB
+GET {{ai}}/api/ai/analyze-graph/{{cooperativeId}}/
+
+### 28. AI health scores
+GET {{ai}}/api/ai/health-scores/
+
+### 29. AI all health scores
+GET {{ai}}/api/ai/health-scores/all/
+
+### 30. Send SMS notification
+POST {{notify}}/api/notify/sms/
+Content-Type: application/json
+
+{
+  "phone_number": "08012345678",
+  "message": "VeriFund smoke test"
+}
+
+### 31. Notification history
+GET {{notify}}/api/notify/history/?limit=5
