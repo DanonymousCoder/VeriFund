@@ -18,5 +18,3 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["shared.middleware.auth.JWTAuthentication"],
 }
 CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
-AT_USERNAME = env("AT_USERNAME", default="sandbox")
-AT_API_KEY = env("AT_API_KEY", default="")

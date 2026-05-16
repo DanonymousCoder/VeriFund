@@ -233,7 +233,7 @@ def main() -> None:
     preflight_database()
     wait_for(f"{GATEWAY_URL}/api/cooperatives/non-existent/trust-score/")
     wait_for(f"{AI_URL}/api/ai/health-scores/")
-    wait_for(f"{NOTIFY_URL}/api/notify/sms/")
+    wait_for(f"{NOTIFY_URL}/api/notify/email/")
 
     run_id = uuid.uuid4().hex[:8]
     admin1 = register_user(None, f"{run_id}01")
@@ -509,11 +509,15 @@ def main() -> None:
     assert_status(
         request_json(
             "POST",
-            f"{NOTIFY_URL}/api/notify/sms/",
-            payload={"phone_number": "08012345678", "message": "VeriFund smoke test"},
+            f"{NOTIFY_URL}/api/notify/email/",
+            payload={
+                "email": f"smoke-{run_id}@verifund.local",
+                "subject": "VeriFund smoke test",
+                "message": "VeriFund smoke test",
+            },
         ),
         200,
-        "notification sms",
+        "notification email",
     )
     assert_status(
         request_json("GET", f"{NOTIFY_URL}/api/notify/history/?limit=5"),

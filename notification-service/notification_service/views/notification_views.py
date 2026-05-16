@@ -1,15 +1,27 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from notification_service.services.sms_service import list_notifications, send_sms
+from rest_framework.views import APIView
+
+from notification_service.services.notify_service import list_notifications, send_notification
 
 
 class SendNotificationView(APIView):
     def post(self, request):
-        phone_number = request.data.get("phone_number")
         message = request.data.get("message")
-        if not phone_number or not message:
-            return Response({"detail": "phone_number and message are required."}, status=400)
-        result = send_sms(phone_number, message)
+        if not message:
+            return Response({"detail": "message is required."}, status=400)
+
+        email = request.data.get("email") or request.data.get("to")
+        phone_number = request.data.get("phone_number")
+        if not email and not phone_number:
+            return Response({"detail": "email or phone_number is required."}, status=400)
+
+        subject = request.data.get("subject", "VeriFund Notification")
+        result = send_notification(
+            email=email,
+            phone_number=phone_number,
+            message=message,
+            subject=subject,
+        )
         return Response(result)
 
 
@@ -18,9 +30,10 @@ class NotificationHistoryView(APIView):
         recipient = request.query_params.get("recipient")
         status = request.query_params.get("status")
         limit = int(request.query_params.get("limit", "50"))
+        bounded = max(1, min(limit, 200))
         return Response(
             {
-                "notifications": list_notifications(recipient=recipient, status=status, limit=max(1, min(limit, 200))),
-                "filters": {"recipient": recipient, "status": status, "limit": max(1, min(limit, 200))},
+                "notifications": list_notifications(recipient=recipient, status=status, limit=bounded),
+                "filters": {"recipient": recipient, "status": status, "limit": bounded},
             }
         )

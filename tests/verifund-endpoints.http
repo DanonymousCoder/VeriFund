@@ -232,12 +232,13 @@ GET {{ai}}/api/ai/health-scores/
 ### 29. AI all health scores
 GET {{ai}}/api/ai/health-scores/all/
 
-### 30. Send SMS notification
-POST {{notify}}/api/notify/sms/
+### 30. Send email notification
+POST {{notify}}/api/notify/email/
 Content-Type: application/json
 
 {
-  "phone_number": "08012345678",
+  "email": "member@example.com",
+  "subject": "VeriFund notification",
   "message": "VeriFund smoke test"
 }
 

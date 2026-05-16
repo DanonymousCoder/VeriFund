@@ -208,7 +208,7 @@ def _score_transaction(payload: dict) -> float:
 
 
 def _send_receipt(member_id: str, cooperative_id: str, amount_kobo: int, transaction_ref: str, status: str) -> None:
-    member = fetch_one("SELECT phone_number FROM members WHERE id = %s", [member_id])
+    member = fetch_one("SELECT phone_number, email FROM members WHERE id = %s", [member_id])
     cooperative = fetch_one("SELECT name FROM cooperatives WHERE id = %s", [cooperative_id])
     if not member or not cooperative:
         return
@@ -218,10 +218,18 @@ def _send_receipt(member_id: str, cooperative_id: str, amount_kobo: int, transac
         f"VeriFund: Your contribution of N{amount_naira:,.2f} to {cooperative['name']} "
         f"is {status.lower()}. Ref: {transaction_ref}."
     )
+    payload = {
+        "message": message,
+        "subject": "VeriFund contribution update",
+    }
+    if member.get("email"):
+        payload["email"] = member["email"]
+    else:
+        payload["phone_number"] = member.get("phone_number")
     try:
         httpx.post(
-            f"{NOTIFICATION_SERVICE_URL}/api/notify/sms/",
-            json={"phone_number": member["phone_number"], "message": message},
+            f"{NOTIFICATION_SERVICE_URL}/api/notify/email/",
+            json=payload,
             timeout=5,
         )
     except Exception:
