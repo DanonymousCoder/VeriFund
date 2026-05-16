@@ -5,9 +5,13 @@ This keeps the frontend's base URL constant regardless of internal refactoring.
 """
 
 from django.urls import path
+
+from gateway.health_views import HealthView
 from gateway.proxy_views import ProxyView
 
 urlpatterns = [
+    path("health/", HealthView.as_view()),
+    path("api/health/", HealthView.as_view()),
     # Auth + Member
     path("api/auth/<path:path>", ProxyView.as_view(service="MEMBER_SERVICE_URL", prefix="api/auth/")),
     path("api/members/<path:path>", ProxyView.as_view(service="MEMBER_SERVICE_URL", prefix="api/members/")),

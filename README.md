@@ -49,15 +49,40 @@ Use **two services** from this repo (same root directory for both).
 - Set `DATABASE_URL`, `JWT_SECRET`, `SECRET_KEY`, `ALLOWED_HOSTS=*`, `DEBUG=False`
 - Optional: `OPENROUTER_API_KEY` for LLM whistleblower triage
 
+### How many Railway services?
+
+**Two, not seven.**
+
+| Railway service | Dockerfile | Public URL purpose |
+|---|---|---|
+| **Backend (monolith)** | root `Dockerfile` | Frontend hits this — all APIs on one URL |
+| **AI only** | `ai-service/Dockerfile` | Called by backend via `AI_SERVICE_URL` |
+
+You do **not** deploy member/cooperative/contribution/etc. separately. The monolith starts them on ports `8001–8006` inside one container; only the gateway uses Railway's `PORT`.
+
 ### Connecting services
 
-| Variable | Where to set | Value |
-|---|---|---|
-| `AI_SERVICE_URL` | **Backend** Railway service | `https://<your-ai-service>.up.railway.app` |
-| `OPENROUTER_API_KEY` | **AI** Railway service | Your OpenRouter key (optional) |
-| `SMTP_*` | **Backend** (notification runs in monolith) | Gmail or other SMTP credentials |
+**Backend Railway variables** (dashboard → Variables):
 
-Local `.env` is for development only. **Do not commit `.env`.** Set the same variables in the Railway dashboard for each service.
+| Variable | Value |
+|---|---|
+| `AI_SERVICE_URL` | `https://independent-optimism-production-7724.up.railway.app` (your AI URL, with `https://`) |
+| `DATABASE_URL` | Your Neon URL |
+| `JWT_SECRET` | Same on backend + AI |
+| `SMTP_HOST` | `smtp.gmail.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | Your Gmail address |
+| `SMTP_PASSWORD` | **Gmail App Password** (not your login password) |
+| `EMAIL_FROM` | Same Gmail address |
+| `DEFAULT_NOTIFICATION_EMAIL` | Where to send if member has no email |
+
+Do **not** set `MEMBER_SERVICE_URL` to the public Railway URL on the backend service. The monolith uses internal `127.0.0.1` ports automatically.
+
+**AI Railway variables:** `DATABASE_URL`, `JWT_SECRET`, `SECRET_KEY`, `ALLOWED_HOSTS=*`, `DEBUG=False`
+
+Health check: `GET https://your-backend.up.railway.app/health/`
+
+Local `.env` is for development only. **Never commit `.env`.**
 
 Test deployed URLs:
 

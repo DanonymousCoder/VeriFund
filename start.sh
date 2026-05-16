@@ -12,12 +12,15 @@ export JWT_EXPIRY_HOURS="${JWT_EXPIRY_HOURS:-24}"
 export DATABASE_CONNECT_TIMEOUT="${DATABASE_CONNECT_TIMEOUT:-10}"
 export DATABASE_SSLMODE="${DATABASE_SSLMODE:-require}"
 
-export MEMBER_SERVICE_URL="${MEMBER_SERVICE_URL:-http://127.0.0.1:8001}"
-export COOPERATIVE_SERVICE_URL="${COOPERATIVE_SERVICE_URL:-http://127.0.0.1:8002}"
-export CONTRIBUTION_SERVICE_URL="${CONTRIBUTION_SERVICE_URL:-http://127.0.0.1:8003}"
-export WITHDRAWAL_SERVICE_URL="${WITHDRAWAL_SERVICE_URL:-http://127.0.0.1:8004}"
+# In the monolith container, microservices always talk over loopback.
+# Do NOT point these at the public Railway URL — only the gateway is public.
+export MEMBER_SERVICE_URL="http://127.0.0.1:8001"
+export COOPERATIVE_SERVICE_URL="http://127.0.0.1:8002"
+export CONTRIBUTION_SERVICE_URL="http://127.0.0.1:8003"
+export WITHDRAWAL_SERVICE_URL="http://127.0.0.1:8004"
+export NOTIFICATION_SERVICE_URL="http://127.0.0.1:8006"
+# AI may be external (separate Railway service) or local on 8005.
 export AI_SERVICE_URL="${AI_SERVICE_URL:-http://127.0.0.1:8005}"
-export NOTIFICATION_SERVICE_URL="${NOTIFICATION_SERVICE_URL:-http://127.0.0.1:8006}"
 
 should_run_builtin_ai() {
   case "$AI_SERVICE_URL" in
