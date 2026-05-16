@@ -38,7 +38,7 @@ GATEWAY_URL = os.getenv("GATEWAY_URL", "http://127.0.0.1:8000").rstrip("/")
 AI_URL = os.getenv("AI_URL", "http://127.0.0.1:8005").rstrip("/")
 NOTIFY_URL = os.getenv("NOTIFY_URL", "http://127.0.0.1:8006").rstrip("/")
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-SQUAD_TEST_BVN = os.getenv("SQUAD_TEST_BVN", "22819094586").strip()
+SQUAD_TEST_BVN = os.getenv("SQUAD_TEST_BVN", "123456789").strip()
 
 
 def db_execute(query: str, params: tuple | list | None = None) -> None:

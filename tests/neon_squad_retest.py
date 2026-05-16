@@ -16,7 +16,7 @@ DB_URL = os.getenv(
     "postgresql://neondb_owner:npg_W7Is4YfkZFJS@ep-wispy-wave-apgo0600.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require",
 )
 JWT_SECRET = os.getenv("JWT_SECRET", "verifund-dev-jwt-secret")
-TEST_BVN = os.getenv("SQUAD_TEST_BVN", "22819094586")
+TEST_BVN = os.getenv("SQUAD_TEST_BVN", "123456789")
 
 
 def _service_env() -> dict[str, str]:
