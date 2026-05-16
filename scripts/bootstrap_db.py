@@ -145,7 +145,8 @@ def main() -> None:
     if not database_url:
         raise SystemExit("DATABASE_URL is required.")
 
-    connection = psycopg2.connect(database_url)
+    timeout = int(os.getenv("DATABASE_CONNECT_TIMEOUT", "10"))
+    connection = psycopg2.connect(database_url, connect_timeout=timeout)
     connection.autocommit = True
     with connection.cursor() as cursor:
         cursor.execute(SQL)
