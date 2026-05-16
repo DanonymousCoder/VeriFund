@@ -11,3 +11,4 @@ pandas==2.2
 shap==0.45
 networkx==3.3
 joblib==1.4
+requests==2.31.0

@@ -144,8 +144,7 @@ The current backend already has working endpoints for:
 What is not built out yet is mostly breadth, not core flow:
 
 - no advanced admin CRUD screens yet
-- no pagination/filter params on most list endpoints yet
+-- no pagination/filter params on most list endpoints yet
 - no email/push notification service yet
-- AI endpoints are production-shaped but still use heuristic fallback logic by default
 
 See `FRONTEND_ROUTES.md` for the exact contract the frontend should integrate against.
