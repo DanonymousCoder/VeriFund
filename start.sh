@@ -19,6 +19,17 @@ export WITHDRAWAL_SERVICE_URL="${WITHDRAWAL_SERVICE_URL:-http://127.0.0.1:8004}"
 export AI_SERVICE_URL="${AI_SERVICE_URL:-http://127.0.0.1:8005}"
 export NOTIFICATION_SERVICE_URL="${NOTIFICATION_SERVICE_URL:-http://127.0.0.1:8006}"
 
+should_run_builtin_ai() {
+  case "$AI_SERVICE_URL" in
+    http://127.0.0.1:*|http://localhost:*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 python "$ROOT_DIR/scripts/bootstrap_db.py"
 
 (
@@ -45,11 +56,14 @@ CONTRIB_PID=$!
 ) &
 WITHDRAW_PID=$!
 
-(
-  cd "$ROOT_DIR/ai-service"
-  python manage.py runserver 127.0.0.1:8005
-) &
-AI_PID=$!
+AI_PID=""
+if should_run_builtin_ai; then
+  (
+    cd "$ROOT_DIR/ai-service"
+    python manage.py runserver 127.0.0.1:8005
+  ) &
+  AI_PID=$!
+fi
 
 (
   cd "$ROOT_DIR/notification-service"
@@ -58,7 +72,11 @@ AI_PID=$!
 NOTIFY_PID=$!
 
 cleanup() {
-  kill "$MEMBER_PID" "$COOP_PID" "$CONTRIB_PID" "$WITHDRAW_PID" "$AI_PID" "$NOTIFY_PID" 2>/dev/null || true
+  pids="$MEMBER_PID $COOP_PID $CONTRIB_PID $WITHDRAW_PID $NOTIFY_PID"
+  if [ -n "$AI_PID" ]; then
+    pids="$pids $AI_PID"
+  fi
+  kill $pids 2>/dev/null || true
 }
 
 trap cleanup INT TERM EXIT

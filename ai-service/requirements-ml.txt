@@ -1,0 +1,10 @@
+# Optional ML/training stack for model development.
+# Install locally: pip install -r ai-service/requirements.txt -r ai-service/requirements-ml.txt
+scikit-learn==1.4
+xgboost==2.0
+torch==2.2
+numpy==1.26
+pandas==2.2
+shap==0.45
+networkx==3.3
+joblib==1.4

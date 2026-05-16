@@ -46,30 +46,42 @@ docker compose ps
 
 ## Deploy on Railway
 
-This repo now includes a root `Dockerfile`, root `requirements.txt`, root `start.sh`, and `railway.json`.
+Use **two Railway services** from the same GitHub repo (monolith backend + separate AI). Keep the **root directory** as the repository root for both (not `ai-service/`), so Docker can copy `shared/` and service folders.
 
-That gives Railway a clear build and start contract from the repo root.
+### 1. Backend (api-gateway + microservices)
 
-1. Push this repo to GitHub.
-2. In Railway, create a new project from the repo.
-3. Railway should detect the root `Dockerfile`.
-4. Set these env vars:
-   - `DATABASE_URL`
-   - `JWT_SECRET`
-   - `SQUAD_SECRET_KEY`
-   - `SQUAD_PUBLIC_KEY`
-   - `SQUAD_WEBHOOK_SECRET`
-   - `SQUAD_SETTLEMENT_ACCOUNT`
-   - `SQUAD_SETTLEMENT_MOBILE`
-   - `SQUAD_SETTLEMENT_EMAIL`
-   - `SQUAD_SETTLEMENT_ADDRESS`
-   - `SQUAD_SETTLEMENT_DOB`
-   - `SQUAD_SETTLEMENT_GENDER`
-   - `AT_USERNAME`
-   - `AT_API_KEY`
-5. Use the Railway public URL as your backend base URL.
+- Config file: `railway.json`
+- Dockerfile: `Dockerfile` (root)
+- Start command: `/app/start.sh` (default from `railway.json`)
 
-Railway supports Python. The earlier failure came from missing root-level build/start metadata, not from Python support.
+Env vars (minimum):
+
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `SQUAD_*` and `AT_*` keys (see `.env.example`)
+- `AI_SERVICE_URL` = public URL of the AI Railway service (see below)
+
+When `AI_SERVICE_URL` points to an external host, `start.sh` does **not** start a local AI process (saves memory and avoids duplicate services).
+
+### 2. AI service
+
+- Add a second service in the same Railway project, same repo.
+- Config file: `railway.ai.json` (or set Dockerfile path to `ai-service/Dockerfile` in the UI).
+- Do **not** set the root directory to `ai-service/` only; the Dockerfile expects the repo root as build context.
+
+Env vars:
+
+- `DATABASE_URL` (same Postgres as backend)
+- `JWT_SECRET` (same value as backend)
+- `SECRET_KEY`, `ALLOWED_HOSTS=*`, `DEBUG=False`
+
+After deploy, copy the AI service public URL into the backend service as `AI_SERVICE_URL` (e.g. `https://verifund-ai-production.up.railway.app`).
+
+### Local / Docker Compose
+
+`docker compose up` still runs `ai-service` on port `8005` with `AI_SERVICE_URL=http://127.0.0.1:8005` (builtin AI).
+
+ML training dependencies are optional: `pip install -r ai-service/requirements-ml.txt`
 
 ## Deploy on Render
 

@@ -3,5 +3,4 @@
 -r cooperative-service/requirements.txt
 -r contribution-service/requirements.txt
 -r withdrawal-service/requirements.txt
--r ai-service/requirements.txt
 -r notification-service/requirements.txt
