@@ -29,4 +29,7 @@ urlpatterns = [
 
     # AI
     path("api/ai/<path:path>", ProxyView.as_view(service="AI_SERVICE_URL", prefix="api/ai/")),
+
+    # Notifications (email)
+    path("api/notify/<path:path>", ProxyView.as_view(service="NOTIFICATION_SERVICE_URL", prefix="api/notify/")),
 ]

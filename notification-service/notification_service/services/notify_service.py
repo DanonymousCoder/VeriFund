@@ -41,38 +41,43 @@ def _log_notification(
     provider_response: dict | None = None,
     error_detail: str | None = None,
 ) -> dict:
-    ensure_notification_schema()
-    with atomic():
-        execute(
-            """
-            INSERT INTO notification_logs (
-                id,
-                channel,
-                recipient,
-                message,
-                status,
-                provider_response,
-                error_detail
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """,
-            [
-                str(uuid.uuid4()),
-                channel,
-                recipient,
-                message,
-                status,
-                json.dumps(provider_response or {}),
-                error_detail,
-            ],
-        )
-    return {
+    result = {
         "status": status,
         "recipient": recipient,
         "channel": channel,
         "provider_response": provider_response or {},
         "detail": error_detail,
     }
+    try:
+        ensure_notification_schema()
+        with atomic():
+            execute(
+                """
+                INSERT INTO notification_logs (
+                    id,
+                    channel,
+                    recipient,
+                    message,
+                    status,
+                    provider_response,
+                    error_detail
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                [
+                    str(uuid.uuid4()),
+                    channel,
+                    recipient,
+                    message,
+                    status,
+                    json.dumps(provider_response or {}),
+                    error_detail,
+                ],
+            )
+    except Exception as exc:
+        result["log_status"] = "skipped"
+        result["log_detail"] = str(exc)
+    return result
 
 
 def _smtp_configured() -> bool:
