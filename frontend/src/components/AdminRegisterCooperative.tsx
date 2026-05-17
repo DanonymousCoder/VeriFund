@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
 import verifundLogo from '../assets/verifund-logo.png'
+import { apiService } from '../services/api'
 import { storageService } from '../services/storage'
+import { APIError } from '../types/api'
 
 type RegistrationResult = {
   cooperativeCode: string
@@ -16,22 +18,6 @@ type ExecContact = {
   name: string
   email: string
   phone: string
-}
-
-const generateCooperativeCode = (cooperativeName: string) => {
-  const acronym = cooperativeName
-    .split(' ')
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 4)
-  const suffix = Math.floor(1000 + Math.random() * 9000)
-  return `VF-${acronym || 'COOP'}-${suffix}`
-}
-
-const generateVirtualAccountNumber = () => {
-  return `91${Math.floor(10000000 + Math.random() * 90000000)}`
 }
 
 const generateInviteCode = () => {
@@ -134,8 +120,22 @@ export default function AdminRegisterCooperative() {
     setLoading(true)
 
     try {
-      const cooperativeCode = generateCooperativeCode(formData.cooperativeName)
-      const virtualAccountNumber = generateVirtualAccountNumber()
+      const cooperativeTypeMap = {
+        thrift: 'THRIFT',
+        credit: 'CREDIT',
+        multipurpose: 'MULTIPURPOSE',
+      } as const
+
+      const cooperativeResponse = await apiService.createCooperative({
+        name: formData.cooperativeName,
+        registration_number: formData.registrationNumber,
+        state: formData.state,
+        cooperative_type: cooperativeTypeMap[formData.cooperativeType as keyof typeof cooperativeTypeMap],
+        treasurer_bvn: formData.adminBvn,
+      })
+
+      const cooperativeCode = cooperativeResponse.id
+      const virtualAccountNumber = cooperativeResponse.squad_virtual_account_number
       const inviteCode = generateInviteCode()
       const inviteLink = `${window.location.origin}/signup?invite=${inviteCode}`
 
@@ -168,7 +168,25 @@ export default function AdminRegisterCooperative() {
       setResult({ cooperativeCode, inviteCode, inviteLink, virtualAccountNumber })
     } catch (error) {
       console.error('Failed to register cooperative:', error)
-      alert('Registration failed. Please try again.')
+      let errorMessage = 'Registration failed. Please try again.'
+      if (error instanceof APIError) {
+        if (typeof error.data === 'object' && error.data !== null) {
+          const details = Object.entries(error.data)
+            .map(([key, value]) => {
+              if (Array.isArray(value)) {
+                return `${key}: ${value.join(', ')}`
+              }
+              return `${key}: ${String(value)}`
+            })
+            .join('\n')
+          errorMessage = details || error.message
+        } else {
+          errorMessage = error.message
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      alert(errorMessage)
     } finally {
       setLoading(false)
     }

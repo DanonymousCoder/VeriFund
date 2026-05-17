@@ -1,4 +1,4 @@
-import { Building2, Mail, Phone, User, Eye, Lock } from 'lucide-react'
+import { Building2, Landmark, Mail, Phone, User, Eye, Lock } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthInput } from './AuthInput'
@@ -19,6 +19,7 @@ export function SignUp() {
     name: '',
     email: '',
     phone: '',
+    bvn: '',
     cooperativeCode: '',
     password: '',
   })
@@ -61,6 +62,7 @@ export function SignUp() {
       'Jane Doe': 'name',
       'jane.doe@example.com': 'email',
       '+1 (555) 000-0000': 'phone',
+      '11-digit BVN': 'bvn',
       'e.g. VF-ABCD-1234': 'cooperativeCode',
       'e.g. INV-12ABCD or VF-ABCD-1234': 'cooperativeCode',
     }
@@ -72,8 +74,13 @@ export function SignUp() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.email || !formData.phone || !formData.cooperativeCode || !formData.password) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.bvn || !formData.cooperativeCode || !formData.password) {
       alert('Please fill in all fields')
+      return
+    }
+
+    if (!/^\d{11}$/.test(formData.bvn)) {
+      alert('Please provide a valid 11-digit BVN')
       return
     }
 
@@ -86,7 +93,7 @@ export function SignUp() {
 
       // Register with API
       const response = await apiService.register({
-        bvn: '12345678901', // TODO: Collect BVN in form
+        bvn: formData.bvn,
         first_name: firstName,
         last_name: lastName,
         phone_number: formData.phone,
@@ -186,6 +193,16 @@ export function SignUp() {
               placeholder="+1 (555) 000-0000"
               value={formData.phone}
               onChange={handleChange}
+            />
+            <AuthInput
+              label="BVN"
+              icon={Landmark}
+              placeholder="11-digit BVN"
+              value={formData.bvn}
+              onChange={(e) => {
+                const cleanValue = e.target.value.replace(/\D/g, '').slice(0, 11)
+                setFormData((prev) => ({ ...prev, bvn: cleanValue }))
+              }}
             />
             <AuthInput
               label="Invite Link / Code"

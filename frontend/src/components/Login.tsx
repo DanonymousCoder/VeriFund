@@ -24,6 +24,7 @@ export function Login() {
     const fieldMap: Record<string, keyof typeof formData> = {
       'e.g. VF-ABCD-1234': 'cooperativeCode',
       'name@cooperative.org': 'email',
+      '08012345678 or name@example.com': 'email',
       '••••••••': 'password',
     }
     const field = fieldMap[placeholder]

@@ -48,7 +48,8 @@ import type {
   WebhookEventsResponse,
 } from '../types/api'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Default to the currently deployed production backend. Can be overridden by VITE_API_URL.
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://verifund-production-0ae5.up.railway.app'
 const TOKEN_STORAGE_KEY = 'verifund_api_token'
 const TIMEOUT = 30000
 
