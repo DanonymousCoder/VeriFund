@@ -8,7 +8,9 @@ import {
   ChartColumnIncreasing,
   FileSearch,
   Landmark,
+  Mail,
   LockKeyhole,
+  Phone,
   ShieldCheck,
   Users,
   type LucideIcon,
@@ -193,6 +195,7 @@ function LandingPage() {
         <Hero />
         <SecuritySection />
         <AboutSection />
+        <ContactSection />
       </main>
       <Footer />
     </div>
@@ -441,9 +444,125 @@ function AboutSection() {
   )
 }
 
+function ContactSection() {
+  const handleContactSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const formData = new FormData(event.currentTarget)
+    const name = String(formData.get('name') || '').trim()
+    const email = String(formData.get('email') || '').trim()
+    const subject = String(formData.get('subject') || '').trim()
+    const message = String(formData.get('message') || '').trim()
+
+    const mailSubject = encodeURIComponent(subject || 'VeriFund support request')
+    const mailBody = encodeURIComponent(
+      [`Name: ${name || 'Not provided'}`, `Email: ${email || 'Not provided'}`, '', message || ''].join('\n')
+    )
+
+    window.location.href = `mailto:support@verifund.co?subject=${mailSubject}&body=${mailBody}`
+  }
+
+  return (
+    <section id="contact" className="bg-white py-24">
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+        <div className="rounded-4xl border border-slate-200 bg-slate-950 p-10 text-white shadow-xl shadow-slate-200/50">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">Contact</p>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Talk to the VeriFund team.</h2>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
+            Need help with onboarding, cooperative registration, or account verification? Our team can guide you
+            through the setup and answer implementation questions.
+          </p>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <a
+              href="mailto:support@verifund.co"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+            >
+              <Mail className="h-4 w-4 text-blue-700" />
+              support@verifund.co
+            </a>
+            <a
+              href="tel:+2348000000000"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              <Phone className="h-4 w-4 text-cyan-300" />
+              +234 800 000 0000
+            </a>
+          </div>
+
+          <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h3 className="text-lg font-semibold text-white">Support hours</h3>
+            <p className="mt-2 text-sm leading-7 text-slate-300">Monday to Friday, 9:00 AM to 6:00 PM WAT.</p>
+          </div>
+        </div>
+
+        <div className="rounded-4xl border border-slate-200 bg-slate-50 p-8 shadow-sm">
+          <h3 className="text-xl font-semibold text-slate-950">Send a message</h3>
+          <p className="mt-2 text-sm leading-7 text-slate-600">
+            Use this form to send the support team a direct email draft with your details and request.
+          </p>
+
+          <form onSubmit={handleContactSubmit} className="mt-6 space-y-4">
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Name</label>
+              <input
+                name="name"
+                type="text"
+                required
+                placeholder="Your full name"
+                className="block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-300 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Email</label>
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="you@example.com"
+                className="block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-300 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Subject</label>
+              <input
+                name="subject"
+                type="text"
+                required
+                placeholder="How can we help?"
+                className="block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-300 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Message</label>
+              <textarea
+                name="message"
+                rows={5}
+                required
+                placeholder="Tell us what you need help with..."
+                className="block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-300 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="inline-flex w-full items-center justify-center rounded-full bg-blue-700 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/20 transition hover:-translate-y-0.5 hover:bg-blue-800"
+            >
+              Send message
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function Footer() {
   return (
-    <footer id="contact" className="bg-slate-950 px-6 py-16 text-white lg:px-8">
+    <footer className="bg-slate-950 px-6 py-16 text-white lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-12 border-b border-white/10 pb-12 md:grid-cols-4">
         <div className="space-y-5">
           <div className="flex items-center gap-2">
