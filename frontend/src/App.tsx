@@ -1,18 +1,19 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import {
   ArrowRight,
   BadgeCheck,
-  Bell,
   ChartColumnIncreasing,
   FileSearch,
   Landmark,
   Mail,
   LockKeyhole,
+  Menu,
   Phone,
   ShieldCheck,
   Users,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { Login, MemberDashboard, SignUp } from './components'
@@ -203,6 +204,7 @@ function LandingPage() {
 }
 
 function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false)
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
@@ -223,21 +225,7 @@ function Navbar() {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="rounded-full border border-slate-200 bg-white p-2 text-slate-600 transition hover:border-blue-200 hover:text-blue-700"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Security"
-            className="hidden rounded-full border border-slate-200 bg-white p-2 text-slate-600 transition hover:border-blue-200 hover:text-blue-700 sm:inline-flex"
-          >
-            <ShieldCheck className="h-4 w-4" />
-          </button>
+        <div className="hidden md:flex items-center gap-3 sm:gap-4">
           <Link
             to="/signup"
             className="inline-flex items-center justify-center rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
@@ -251,7 +239,55 @@ function Navbar() {
             Admin Register
           </Link>
         </div>
+
+        <div className="md:hidden flex items-center">
+          <button
+            type="button"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((s) => !s)}
+            className="rounded-md p-2 text-slate-700 hover:bg-slate-100"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </nav>
+
+      {mobileOpen ? (
+        <div className="md:hidden border-t border-slate-200 bg-white">
+          <div className="mx-auto max-w-7xl px-6 pb-4">
+            <div className="space-y-3 py-3">
+              {navigationItems.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="block rounded-md px-3 py-2 text-base font-medium text-slate-700 hover:text-blue-700"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 pb-4">
+              <Link
+                to="/signup"
+                onClick={() => setMobileOpen(false)}
+                className="w-full rounded-full bg-blue-700 px-4 py-2.5 text-center text-sm font-semibold text-white"
+              >
+                Signup
+              </Link>
+              <Link
+                to="/admin/register"
+                onClick={() => setMobileOpen(false)}
+                className="w-full rounded-full border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900"
+              >
+                Admin Register
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }
