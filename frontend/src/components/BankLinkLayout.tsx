@@ -71,19 +71,19 @@ const BankAccountForm: React.FC = () => {
             </div>
           </div>
 
-          {/* Verify Button */}
+          {/* Account Details Check */}
           <button
             type="button"
             className="w-full flex items-center justify-center gap-2 bg-blue-50 border border-blue-100 text-[#005AD2] font-bold text-[11px] py-3 rounded-md hover:bg-blue-100 transition-colors uppercase tracking-widest"
           >
-            <ShieldCheck size={16} /> Verify Account
+            <ShieldCheck size={16} /> Check Account Details
           </button>
 
           {/* Information Notice */}
           <div className="bg-gray-50 border border-gray-100 border-dashed rounded-md p-4 flex gap-3">
             <Info className="text-gray-400 w-5 h-5 shrink-0" />
             <p className="text-[11px] text-gray-500 leading-normal">
-              Account details will appear here once verified. Ensure the name matches your registered BVN profile.
+              Account details will appear after the Squad virtual account is created. Ensure the name matches your registered BVN profile.
             </p>
           </div>
         </form>

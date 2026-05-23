@@ -80,11 +80,11 @@ export default function AdminRegisterCooperative() {
     setIdentityVerified(verified)
 
     if (!verified) {
-      alert('Identity verification failed. Ensure full name and 11-digit BVN are valid.')
+      alert('Admin details look incomplete. Ensure full name and 11-digit BVN are valid.')
       return
     }
 
-    alert('Identity verified successfully.')
+    alert('Admin details look valid.')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +105,7 @@ export default function AdminRegisterCooperative() {
     }
 
     if (!identityVerified) {
-      alert('Please verify admin BVN identity before registering the cooperative.')
+      alert('Please validate admin details before registering the cooperative.')
       return
     }
 
@@ -387,7 +387,7 @@ export default function AdminRegisterCooperative() {
                 : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
             }`}
           >
-            {identityVerified ? 'Identity Verified' : 'Verify BVN Identity'}
+            {identityVerified ? 'Details Validated' : 'Validate Admin Details'}
           </button>
 
           <button

@@ -92,7 +92,7 @@ export function SignUp() {
       const lastName = nameParts.slice(1).join(' ') || ''
 
       // Register with API
-      const response = await apiService.register({
+      await apiService.register({
         bvn: formData.bvn,
         first_name: firstName,
         last_name: lastName,
@@ -116,7 +116,7 @@ export function SignUp() {
         })
       )
 
-      alert(`✓ Account created!\n\nBVN Verification Status: ${response.member.bvn_verified ? 'Verified' : 'Pending'}\n\nComplete onboarding to access your dashboard.`)
+      alert(`✓ Account created!\n\nBVN will be verified when you create your Squad virtual account.\n\nComplete onboarding to access your dashboard.`)
       navigate('/verify')
     } catch (error) {
       console.error('Signup failed:', error)
