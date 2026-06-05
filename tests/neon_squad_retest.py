@@ -11,10 +11,9 @@ import psycopg2
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DB_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://neondb_owner:npg_W7Is4YfkZFJS@ep-wispy-wave-apgo0600.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require",
-)
+DB_URL = os.getenv("DATABASE_URL", "").strip()
+if not DB_URL:
+    raise SystemExit("DATABASE_URL is required for the Neon retest.")
 JWT_SECRET = os.getenv("JWT_SECRET", "verifund-dev-jwt-secret")
 TEST_BVN = os.getenv("SQUAD_TEST_BVN", "22222222222")
 
