@@ -18,7 +18,8 @@ export COOPERATIVE_SERVICE_URL="http://127.0.0.1:8002"
 export CONTRIBUTION_SERVICE_URL="http://127.0.0.1:8003"
 export WITHDRAWAL_SERVICE_URL="http://127.0.0.1:8004"
 export NOTIFICATION_SERVICE_URL="http://127.0.0.1:8006"
-export AI_SERVICE_URL="${AI_SERVICE_URL:-http://127.0.0.1:8005}"
+# Monolith deploys always use the built-in AI process on loopback.
+export AI_SERVICE_URL="http://127.0.0.1:8005"
 
 should_run_builtin_ai() {
   case "$AI_SERVICE_URL" in

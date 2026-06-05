@@ -39,10 +39,7 @@ def _service_env() -> dict[str, str]:
             "SQUAD_SETTLEMENT_GENDER": "2",
             "ALLOW_UNVERIFIED_WEBHOOKS": "True",
             "ALLOWED_HOSTS": "127.0.0.1,localhost,0.0.0.0,testserver,*",
-            "REDIS_URL": os.getenv(
-                "REDIS_URL",
-                "redis://default:gQAAAAAAAeKzAAIgcDIzYmU2ZjI4ZjgwMTg0NjMxOWFkYzgxMDIxZjYyMDM5ZQ@major-piglet-123571.upstash.io:6379",
-            ),
+            "REDIS_URL": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0"),
             "PYTHONPATH": str(ROOT),
         }
     )
