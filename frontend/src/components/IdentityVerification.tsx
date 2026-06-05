@@ -162,7 +162,7 @@ export const VerificationForm: React.FC = () => {
                 type="text"
                 value={bvn}
                 onChange={(e) => setBvn(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                placeholder="e.g. 12345678901"
+                placeholder="e.g. 22222222222"
                 inputMode="numeric"
                 maxLength={11}
                 className="w-full bg-[#F8FAFC] border border-gray-100 rounded-md py-3 px-4 text-sm font-mono placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all"

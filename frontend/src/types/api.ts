@@ -477,6 +477,48 @@ export type AnalyzeGraphResponse = {
   model: string
 }
 
+// ============= Ops / QA Scoreboard =============
+
+export type QARunSummary = {
+  runId: string
+  env?: string
+  gateway?: string
+  at?: string
+  durationMs?: number
+  total: number
+  passed: number
+  failed: number
+  passRate: number
+  categories?: Record<string, { total: number; passed: number; failed: number }>
+  cooperativeId?: string
+  withdrawalId?: string
+  memberId?: string
+}
+
+export type QARunFailure = {
+  name: string
+  method: string
+  url: string
+  expected: number
+  actual: number
+  pass: boolean
+  ms?: number
+  snippet?: string
+}
+
+export type QAScoreboardResponse = {
+  status: 'ok' | 'empty'
+  available: boolean
+  message?: string
+  candidate_paths?: string[]
+  source?: string
+  run_count?: number
+  latest_run_id?: string | null
+  latest_summary?: QARunSummary | null
+  latest_failures?: QARunFailure[]
+  recent_runs?: QARunSummary[]
+}
+
 // ============= Error Types =============
 
 export type APIErrorResponse = {

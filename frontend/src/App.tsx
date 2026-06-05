@@ -26,6 +26,7 @@ import MandateAuthorization from './components/MandateAuthorization'
 import AdminRegisterCooperative from './components/AdminRegisterCooperative'
 import AdminOverview from './components/AdminOverview'
 import ExecutiveInbox from './components/ExecutiveInbox'
+import QAScoreboard from './components/QAScoreboard'
 import heroImage from './assets/hero.png'
 import verifundLogo from './assets/verifund-logo.png'
 
@@ -121,6 +122,7 @@ function App() {
       <Route path="/verify/account" element={<BankLinkLayout />} />
       <Route path="/verify/authorize" element={<MandateAuthorization />} />
       <Route path="/admin/register" element={<AdminRegisterCooperative />} />
+      <Route path="/ops/qa-scoreboard" element={<QAScoreboard />} />
       <Route
         path="/admin/overview"
         element={
@@ -231,6 +233,12 @@ function Navbar() {
             className="inline-flex items-center justify-center rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
           >
             Signup
+          </Link>
+          <Link
+            to="/ops/qa-scoreboard"
+            className="hidden items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50 lg:inline-flex"
+          >
+            QA Scoreboard
           </Link>
           <Link
             to="/admin/register"

@@ -7,6 +7,7 @@ This keeps the frontend's base URL constant regardless of internal refactoring.
 from django.urls import path
 
 from gateway.health_views import HealthView
+from gateway.ops_views import QAScoreboardView
 from gateway.proxy_views import ProxyView
 
 urlpatterns = [
@@ -32,4 +33,7 @@ urlpatterns = [
 
     # Notifications (email)
     path("api/notify/<path:path>", ProxyView.as_view(service="NOTIFICATION_SERVICE_URL", prefix="api/notify/")),
+
+    # Ops / QA scoreboard
+    path("api/ops/qa-scoreboard/", QAScoreboardView.as_view()),
 ]

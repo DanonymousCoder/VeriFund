@@ -30,6 +30,7 @@ import type {
   DebitMandateResponse,
   GetMandateResponse,
   HealthScoresResponse,
+  QAScoreboardResponse,
   NotificationHistoryResponse,
   PendingWithdrawalsResponse,
   ReQueryWithdrawalResponse,
@@ -246,6 +247,10 @@ class APIService {
 
   async getGraphAnalysis(cooperativeId: string): Promise<AnalyzeGraphResponse> {
     return this.request<AnalyzeGraphResponse>('GET', `/api/ai/analyze-graph/${cooperativeId}/`)
+  }
+
+  async getQAScoreboard(): Promise<QAScoreboardResponse> {
+    return this.request<QAScoreboardResponse>('GET', '/api/ops/qa-scoreboard/', undefined, false)
   }
 }
 

@@ -48,39 +48,39 @@ start_microservices() {
   echo "[start] launching internal microservices..."
   (
     cd "$ROOT_DIR/member-service"
-    python manage.py runserver 127.0.0.1:8001
+    python manage.py runserver 127.0.0.1:8001 --noreload
   ) &
   MEMBER_PID=$!
 
   (
     cd "$ROOT_DIR/cooperative-service"
-    python manage.py runserver 127.0.0.1:8002
+    python manage.py runserver 127.0.0.1:8002 --noreload
   ) &
   COOP_PID=$!
 
   (
     cd "$ROOT_DIR/contribution-service"
-    python manage.py runserver 127.0.0.1:8003
+    python manage.py runserver 127.0.0.1:8003 --noreload
   ) &
   CONTRIB_PID=$!
 
   (
     cd "$ROOT_DIR/withdrawal-service"
-    python manage.py runserver 127.0.0.1:8004
+    python manage.py runserver 127.0.0.1:8004 --noreload
   ) &
   WITHDRAW_PID=$!
 
   if should_run_builtin_ai; then
     (
       cd "$ROOT_DIR/ai-service"
-      python manage.py runserver 127.0.0.1:8005
+      python manage.py runserver 127.0.0.1:8005 --noreload
     ) &
     AI_PID=$!
   fi
 
   (
     cd "$ROOT_DIR/notification-service"
-    python manage.py runserver 127.0.0.1:8006
+    python manage.py runserver 127.0.0.1:8006 --noreload
   ) &
   NOTIFY_PID=$!
 
@@ -98,4 +98,4 @@ SERVICES_PID=$!
 
 echo "[start] launching api-gateway on 0.0.0.0:${APP_PORT}..."
 cd "$ROOT_DIR/api-gateway"
-exec python manage.py runserver "0.0.0.0:${APP_PORT}"
+exec python manage.py runserver "0.0.0.0:${APP_PORT}" --noreload

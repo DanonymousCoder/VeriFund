@@ -38,7 +38,7 @@ Set in the frontend: `VITE_API_URL=<base-url>`
 **Body:**
 ```json
 {
-  "bvn": "123456789",
+   "bvn": "22222222222",
   "first_name": "Ada",
   "last_name": "Okafor",
   "phone_number": "08012345678",
@@ -114,7 +114,7 @@ Set in the frontend: `VITE_API_URL=<base-url>`
   "registration_number": "REG-12345",
   "state": "Lagos",
   "cooperative_type": "MULTIPURPOSE",
-  "treasurer_bvn": "123456789"
+   "treasurer_bvn": "22222222222"
 }
 ```
 
@@ -152,7 +152,7 @@ Creates a Squad virtual account for this member + cooperative. BVN is validated 
 ```json
 {
   "cooperative_id": "<uuid>",
-  "bvn": "123456789",
+   "bvn": "22222222222",
   "dob": "07/19/1990",
   "address": "22 Marina Road, Lagos",
   "gender": "1",

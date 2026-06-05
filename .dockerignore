@@ -7,3 +7,8 @@ __pycache__/
 *.err.log
 *.out.log
 tests/logs/
+tests/quickdb-runner/node_modules/
+frontend/node_modules/
+frontend/dist/
+agent-tools/
+terminals/

@@ -1,5 +1,24 @@
 # Tests
 
+## Quick.db endpoint runner (recommended)
+
+Full gateway smoke test with results stored in **quick.db** (`tests/quickdb-runner/`) and a local run scoreboard:
+
+```bash
+cd tests/quickdb-runner
+npm install
+npm run test:production
+npm run test:local
+```
+
+No extra quick.db env vars are required. Set `DATABASE_URL` (same Postgres as the API) only to enable withdrawal multi-sign seeding. Without it, withdrawal sign/requery steps are skipped.
+
+Production URL is preset in `test:production` (`https://verifund-production-0ae5.up.railway.app`).
+
+After a run, the gateway exposes the same data at `GET /api/ops/qa-scoreboard/`, and the frontend renders it at `/ops/qa-scoreboard`.
+
+---
+
 `live_route_smoke.py` is a lightweight end-to-end smoke test for the public backend routes.
 `verifund-endpoints.http` is a manual request file you can use before the frontend exists.
 

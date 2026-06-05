@@ -11,7 +11,7 @@
 @cooperativeId = paste-cooperative-id-here
 @withdrawalId = paste-withdrawal-id-here
 @merchantReference = paste-merchant-reference-here
-@testBvn = 123456789
+@testBvn = 22222222222
 
 ### 1. Register member
 POST {{gateway}}/api/auth/register/

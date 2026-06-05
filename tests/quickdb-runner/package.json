@@ -1,0 +1,20 @@
+{
+  "name": "verifund-quickdb-runner",
+  "private": true,
+  "type": "module",
+  "description": "VeriFund API endpoint tests with quick.db result persistence",
+  "scripts": {
+    "test:local": "node run.mjs",
+    "test:production": "cross-env GATEWAY_URL=https://verifund-production-0ae5.up.railway.app AI_URL=https://verifund-production-0ae5.up.railway.app NOTIFY_URL=https://verifund-production-0ae5.up.railway.app TEST_ENV=production node run.mjs",
+    "summarize": "node summarize.mjs",
+    "report": "node summarize.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "pg": "^8.16.0",
+    "quick.db": "^9.1.7"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  }
+}
