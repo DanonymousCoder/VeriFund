@@ -97,6 +97,9 @@ trap cleanup INT TERM EXIT
 start_microservices &
 SERVICES_PID=$!
 
+echo "[start] waiting for internal services to bind..."
+sleep 10
+
 echo "[start] launching api-gateway on 0.0.0.0:${APP_PORT}..."
 cd "$ROOT_DIR/api-gateway"
 exec python manage.py runserver "0.0.0.0:${APP_PORT}" --noreload
