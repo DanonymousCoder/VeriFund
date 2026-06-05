@@ -1,0 +1,15 @@
+# Keep railway up snapshots small and fast
+.git
+**/.env
+**/__pycache__/
+**/*.pyc
+**/*.log
+**/*.err.log
+**/*.out.log
+tests/logs/
+tests/quickdb-runner/node_modules/
+tests/quickdb-runner/data/
+frontend/node_modules/
+frontend/dist/
+agent-tools/
+terminals/
