@@ -341,7 +341,12 @@ def release_withdrawal(withdrawal_id: str) -> dict:
     )
 
     new_status, transfer_status, transfer_error_detail = _map_transfer_result(squad_result)
-    squad_ref = squad_result.get("data", {}).get("transaction_ref")
+    squad_data = squad_result.get("data", {})
+    squad_ref = (
+        squad_data.get("transaction_ref")
+        or squad_data.get("transaction_reference")
+        or squad_data.get("reference")
+    )
     with atomic():
         updated = fetch_one(
             """
