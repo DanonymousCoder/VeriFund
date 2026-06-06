@@ -18,12 +18,33 @@
  */
 
 import { createHash, randomUUID } from "crypto";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { QuickDB } from "quick.db";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(__dirname, "..", "..");
+
+function loadDotEnv(filePath) {
+  if (!existsSync(filePath)) return;
+  const content = readFileSync(filePath, "utf8");
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#") || !line.includes("=")) continue;
+    const eqIndex = line.indexOf("=");
+    const key = line.slice(0, eqIndex).trim();
+    if (!key || process.env[key] !== undefined) continue;
+    let value = line.slice(eqIndex + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+}
+
+loadDotEnv(join(repoRoot, ".env"));
+
 const dataDir = join(__dirname, "data");
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
@@ -33,6 +54,7 @@ const NOTIFY_URL = (process.env.NOTIFY_URL || GATEWAY_URL).replace(/\/$/, "");
 const TEST_ENV = process.env.TEST_ENV || "local";
 const SQUAD_TEST_BVN = process.env.SQUAD_TEST_BVN || "22222222222";
 const DATABASE_URL = (process.env.DATABASE_URL || "").trim();
+const TEST_EMAIL_DOMAIN = "example.com";
 
 const db = new QuickDB({ filePath: join(dataDir, "verifund-endpoint-runs.sqlite") });
 
@@ -103,6 +125,10 @@ function printScoreboard(summary) {
 function uniquePhone(suffix) {
   const digits = suffix.replace(/\D/g, "");
   return `08${digits.slice(-9).padStart(9, "0")}`;
+}
+
+function testEmail(prefix, suffix) {
+  return `${prefix}-${suffix}@${TEST_EMAIL_DOMAIN}`;
 }
 
 function categoryForName(name) {
@@ -209,7 +235,7 @@ async function seedMemberFromTemplate(templateMemberId, suffix, role) {
   }
   const memberId = randomUUID();
   const phone = uniquePhone(suffix);
-  const email = `seed-${suffix}@verifund.local`;
+  const email = testEmail("seed", suffix);
   const bvnHash = createHash("sha256").update(`seed-${suffix}`).digest("hex");
   await client.query(
     `INSERT INTO members (id, bvn_hash, first_name, last_name, phone_number, email, password_hash, bvn_verified, bvn_verified_at, role, is_active)
@@ -257,7 +283,7 @@ async function main() {
       first_name: `Test${suffix}`,
       last_name: "User",
       phone_number: phone1,
-      email: `test-${suffix}@verifund.local`,
+      email: testEmail("test", suffix),
       password: "Passw0rd!123",
     },
   });
@@ -276,7 +302,7 @@ async function main() {
   await check("members me", "GET", `${GATEWAY_URL}/api/members/me/`, 200, auth(token1));
   await check("members patch", "PATCH", `${GATEWAY_URL}/api/members/me/`, 200, {
     ...auth(token1),
-    payload: { first_name: `Updated${suffix}`, email: `updated-${suffix}@verifund.local` },
+    payload: { first_name: `Updated${suffix}`, email: testEmail("updated", suffix) },
   });
 
   const coop = await check("cooperatives create", "POST", `${GATEWAY_URL}/api/cooperatives/`, 201, {
@@ -308,7 +334,7 @@ async function main() {
       address: "22 Marina Road, Lagos",
       gender: "1",
       phone_number: phone1,
-      email: `test-${suffix}@verifund.local`,
+      email: testEmail("test", suffix),
     },
   });
   const virtualAccount = va.data?.virtual_account;
@@ -451,7 +477,7 @@ async function main() {
 
   await check("notify email", "POST", `${NOTIFY_URL}/api/notify/email/`, 200, {
     payload: {
-      email: `quickdb-${suffix}@verifund.local`,
+      email: testEmail("quickdb", suffix),
       subject: "VeriFund quick.db test",
       message: `Run ${runId}`,
     },

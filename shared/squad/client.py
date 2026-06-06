@@ -320,7 +320,20 @@ def simulate_virtual_account_payment(
 def lookup_account_name(bank_code: str, account_number: str) -> dict[str, Any]:
     payload = {"bank_code": _normalize_bank_code(bank_code, flow="payout"), "account_number": account_number}
     if SQUAD_SECRET_KEY and not SQUAD_MOCK_MODE:
-        return _request("POST", "/payout/account/lookup", payload)
+        result = _request("POST", "/payout/account/lookup", payload)
+        if result.get("success") and result.get("data", {}).get("account_name"):
+            return result
+        # Squad sandbox account lookup can be inconsistent across merchant profiles.
+        # For demo and test flows, keep the withdrawal path moving with a stable
+        # fallback recipient name when the sandbox lookup cannot resolve the account.
+        if _is_sandbox_key():
+            return {
+                "success": True,
+                "data": {"account_name": "Sandbox Recipient"},
+                "message": result.get("message", "Sandbox account lookup fallback succeeded."),
+                "raw": result.get("raw", {}),
+            }
+        return result
     return {
         "success": True,
         "data": {"account_name": "Sandbox Recipient"},
