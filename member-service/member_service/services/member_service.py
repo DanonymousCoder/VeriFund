@@ -93,9 +93,9 @@ def login_member(phone_number: str, password: str) -> dict:
         """
         SELECT id, phone_number, password_hash, role, is_active
         FROM members
-        WHERE phone_number = %s
+        WHERE phone_number = %s OR email = %s
         """,
-        [phone_number],
+        [phone_number, phone_number],
     )
     if not member or not check_password(password, member["password_hash"]):
         return {"error": "Invalid phone number or password."}
@@ -104,6 +104,7 @@ def login_member(phone_number: str, password: str) -> dict:
 
     token = create_token({"member_id": member["id"], "role": member["role"]})
     return {"token": token, "member_id": member["id"], "role": member["role"]}
+
 
 
 def get_member_profile(member_id: str) -> dict | None:

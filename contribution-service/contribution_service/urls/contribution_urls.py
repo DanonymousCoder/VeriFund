@@ -6,6 +6,9 @@ from contribution_service.views.contribution_views import (
     MemberContributionVirtualAccountsView,
     SimulateContributionVirtualAccountPaymentView,
     WebhookEventListView,
+    CreateMandateView,
+    MandateStatusView,
+    DebitMandateView,
 )
 urlpatterns = [
     path("virtual-account/", CreateContributionVirtualAccountView.as_view()),
@@ -14,4 +17,8 @@ urlpatterns = [
     path("history/", ContributionHistoryView.as_view()),
     path("audit/<str:cooperative_id>/", CooperativeContributionAuditView.as_view()),
     path("webhooks/events/", WebhookEventListView.as_view()),
+    path("mandate/", CreateMandateView.as_view()),
+    path("mandate/<str:reference>/", MandateStatusView.as_view()),
+    path("mandate/debit/", DebitMandateView.as_view()),
 ]
+

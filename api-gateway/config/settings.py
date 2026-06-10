@@ -11,7 +11,10 @@ INSTALLED_APPS = [
     "rest_framework",
     "gateway",
 ]
-MIDDLEWARE = ["django.middleware.common.CommonMiddleware"]
+MIDDLEWARE = [
+    "gateway.middleware.CORSMiddleware",
+    "django.middleware.common.CommonMiddleware",
+]
 ROOT_URLCONF = "config.urls"
 DATABASES = {}
 REST_FRAMEWORK = {
